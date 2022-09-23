@@ -1,0 +1,13 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: products-service
+  labels:
+    app: products-service
+  namespace: ikomida
+spec:
+  selector:
+     app: products
+  ports:
+  - protocol: TCP
+    port: 1988
