@@ -1,15 +1,18 @@
 FROM  google/cloud-sdk:alpine AS build
 
 ARG PORT 80
+ARG PROJECT_ID
 ARG GOOGLE_SERVICE_ACCOUNT
 ENV GOOGLE_APPLICATION_CREDENTIALS /service/serviceAccount.json
 
 RUN mkdir -p /service 
 WORKDIR /service
 
-RUN apk update && apk --no-cache -U upgrade && apk add --no-cache npm && npm --global i yarn && echo $GOOGLE_SERVICE_ACCOUNT > /service/serviceAccount_b64 && base64 -d /service/serviceAccount_b64 > $GOOGLE_APPLICATION_CREDENTIALS && gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS && export PATH="$(yarn global bin):$PATH" && yarn global add google-artifactregistry-auth
+RUN apk update && apk --no-cache -U upgrade && apk add --no-cache npm && npm --global i yarn patch-package && echo $GOOGLE_SERVICE_ACCOUNT > /service/serviceAccount_b64 && base64 -d /service/serviceAccount_b64 > $GOOGLE_APPLICATION_CREDENTIALS && gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS && export PATH="$(yarn global bin):$PATH" && yarn global add google-artifactregistry-auth
 
-COPY .npmrc package.json .npmrc .eslintignore .prettierrc api-extractor.json rollup.config.ts tsconfig.json /service/
+COPY package.json .eslintignore .prettierrc api-extractor.json rollup.config.ts tsconfig.json ./
+
+RUN echo "@ikomida:registry=https://us-central1-npm.pkg.dev/$PROJECT_ID/node/" >> .npmrc && echo "//us-central1-npm.pkg.dev/$PROJECT_ID/node/:always-auth=true" >> .npmrc
 RUN yarn glogin && yarn install
 
 COPY ./src /service/src

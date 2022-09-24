@@ -27,6 +27,6 @@ spec:
           minAllowed:
             memory: 0Gi
           maxAllowed:
-            memory: 500m
+            memory: 500Mi
   policy:
     updateMode: Auto
