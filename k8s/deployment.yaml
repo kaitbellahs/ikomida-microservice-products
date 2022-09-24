@@ -21,7 +21,7 @@ spec:
         fsGroup: 2000
         runAsNonRoot: true
       containers:
-        - image: us-central1-docker.pkg.dev/ikomida-prod/docker/products-microservice-image:latest
+        - image: us-central1-docker.pkg.dev/$PROJECT_ID/docker/products-microservice-image:latest
           name: products-microservice
           securityContext:
             allowPrivilegeEscalation: false
@@ -34,15 +34,19 @@ spec:
             - containerPort: 1988
           resources:
             requests:
-              cpu: "40m"
-              memory: "50"
+              cpu: "18m"
+              memory: "60Mi"
             limits:
               cpu: "150m"
           env:
             - name: PORT
               value: "1988"
             - name: NODE_ENV
-              value: "production"
+              valueFrom:
+                secretKeyRef:
+                  name: environment
+                  key: NODE_ENV
+                  optional: false
             - name: IKOMIDA_PRIVATEKEY
               valueFrom:
                 secretKeyRef:
