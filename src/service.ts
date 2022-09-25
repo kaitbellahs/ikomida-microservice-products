@@ -93,7 +93,7 @@ app.post('/product', async (req, res) => {
       res.status(403);
     }
   } catch (exception) {
-    console.error(exception)
+    logger.error(exception)
   }
 });
 

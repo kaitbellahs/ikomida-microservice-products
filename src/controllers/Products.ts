@@ -1,15 +1,23 @@
 import { Domain, Utils, BackendTypes, Types, Logics, DBModels } from '@ikomida/shared-backend';
 import { Buffer } from 'buffer';
 
+const bucket: any = {
+  development: 'dev.',
+  homologation: 'hmlg.',
+  production: '',
+}
+
 export default class Products {
   logger;
   googleAdmin;
   production;
+  bucket
 
   constructor(logger: Utils.Logger) {
     this.logger = logger;
     this.googleAdmin = new Utils.GoogleAdmin(this.logger);
     this.production = process.env.NODE_ENV === 'production'
+    this.bucket = bucket[process.env.NODE_ENV ?? 'development'];
   }
 
   private async uploadToStorage(identity: Types.Classes.CUser, productModel: DBModels.ProductModel, payload?: string) {
@@ -25,7 +33,7 @@ export default class Products {
         const buffer = Buffer.from(base64Image, 'base64');
 
         return (await this.googleAdmin?.uploadFileToStorage(
-          `${!this.production ? 'hmlg.' : ''}cdn.ikomida.com`,
+          `${this.bucket}cdn.ikomida.com`,
           buffer,
           imageExtension,
           imageUri,
@@ -45,7 +53,6 @@ export default class Products {
   async newProduct(identity: Types.Classes.CUser, input: any) {
     try {
       const payload: Types.Classes.CProduct = Types.Classes.CProduct.fromObject(input);
-      console.log('payload?.discountType', payload?.discountType)
       const role = BackendTypes.Roles.valueOf(identity.role);
       if (!role || ![BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF].includes(role) || !payload?.category?.id) {
         const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_UNAUTHORIZED);
