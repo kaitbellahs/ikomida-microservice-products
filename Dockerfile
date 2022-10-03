@@ -1,6 +1,5 @@
 FROM  google/cloud-sdk:alpine AS build
 
-ARG PORT 80
 ARG PROJECT_ID
 ARG GOOGLE_SERVICE_ACCOUNT
 ENV GOOGLE_APPLICATION_CREDENTIALS /service/serviceAccount.json
@@ -13,7 +12,7 @@ RUN apk update && apk --no-cache -U upgrade && apk add --no-cache npm && npm --g
 COPY package.json .eslintignore .prettierrc api-extractor.json rollup.config.ts tsconfig.json ./
 
 RUN echo "@ikomida:registry=https://us-central1-npm.pkg.dev/$PROJECT_ID/node/" >> .npmrc && echo "//us-central1-npm.pkg.dev/$PROJECT_ID/node/:always-auth=true" >> .npmrc
-RUN yarn glogin && yarn add @ikomida/shared-backend@latest
+RUN yarn glogin && yarn --frozen-lockfile
 
 COPY ./src /service/src
 RUN yarn build && yarn install --production
@@ -31,6 +30,4 @@ COPY --chown=ikomida:ikomida --from=build /service/package.json ./
 COPY --chown=ikomida:ikomida --from=build /service/node_modules ./node_modules/
 COPY --chown=ikomida:ikomida --from=build /service/build ./build/
 
-EXPOSE ${PORT}
-
-ENTRYPOINT ["node", "build/service.js"]
+ENTRYPOINT ["node", "--enable-source-maps", "build/service.js"]

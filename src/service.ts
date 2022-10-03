@@ -60,6 +60,28 @@ app.delete('/category/:id', async (req, res) => {
   }
 });
 
+app.delete('/productoption/:id', async (req, res) => {
+  const identity: Types.Classes.CUser = Types.Classes.CUser.fromObject(req.headers?.identity);
+  const role = BackendTypes.Roles.valueOf(identity.role);
+  if (role === BackendTypes.Roles.VENDOR) {
+    const payload = await products.deleteProductOption(identity, req.params.id);
+    res.status(payload?.success ? 201 : 200).sendResponse(payload);
+  } else {
+    res.status(403);
+  }
+});
+
+app.delete('/optioncategory/:id', async (req, res) => {
+  const identity: Types.Classes.CUser = Types.Classes.CUser.fromObject(req.headers?.identity);
+  const role = BackendTypes.Roles.valueOf(identity.role);
+  if (role === BackendTypes.Roles.VENDOR) {
+    const payload = await products.deleteCategoryOptions(identity, req.params.id);
+    res.status(payload?.success ? 201 : 200).sendResponse(payload);
+  } else {
+    res.status(403);
+  }
+});
+
 app.put('/product', async (req, res) => {
   const identity: Types.Classes.CUser = Types.Classes.CUser.fromObject(req.headers?.identity);
   const role = BackendTypes.Roles.valueOf(identity.role);
