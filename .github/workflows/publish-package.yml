@@ -1,4 +1,4 @@
-name: publish ikomida dev lib to artifact registry on pull request merge
+name: publish ikomida products service to artifact registry on pull request merge
 on:
   pull_request_target:
     types:
@@ -70,5 +70,5 @@ jobs:
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
       - name: Deploy
         run: |-
-          kubectl -n ikomida delete deploy contracts-microservice || true
+          kubectl -n ikomida delete deploy products-microservice || true
           for FILE in k8s/*.yaml; do printf "$(cat $FILE)\n---\n" | envsubst; done | kubectl apply -f -
