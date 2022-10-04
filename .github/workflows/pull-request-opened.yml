@@ -33,12 +33,12 @@ jobs:
           SERVICE_NAME=$(node --eval="process.stdout.write(require('./package.json').name)")
           SERVICE_VERSION=$(node --eval="process.stdout.write(require('./package.json').version)")
           SERVICE_VERSION_REMOTE=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
-          if [[ $SERVICE_VERSION > $SERVICE_VERSION_REMOTE ]]; then
-            echo "Service package version is correct"
-            exit 0
-          else 
-            echo "Error: you mast update service package version"
-            exit 1
+          if { echo "$SERVICE_VERSION"; echo "$SERVICE_VERSION_REMOTE"; } | sort --version-sort --check; then
+              echo "Error: you mast update lib package version"
+              exit 1
+          else
+              echo "Lib package version is correct"
+              exit 0
           fi
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
