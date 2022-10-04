@@ -1,4 +1,4 @@
-name: build and test ikomida dev service before pull request merge
+name: build and test ikomida products service before pull request merge
 on:
   pull_request:
     branches:
@@ -8,10 +8,6 @@ on:
 
 env:
   GCLOUD_LOCATION: us-central1
-  GKE_CLUSTER: ikomida-cluster
-  GKE_ZONE: us-central1-b
-  IMAGE: products-microservice-image
-  TAG: latest
 
 jobs:
   build_ikomida:
