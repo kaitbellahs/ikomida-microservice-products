@@ -1,6 +1,6 @@
 {
   "name": "ikomida-products-service",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "ikomida products service",
   "private": true,
   "module": "build/service.js",
@@ -26,7 +26,7 @@
   "author": "Khalid Ait Bellahs",
   "license": "UNLICENSED",
   "dependencies": {
-    "@ikomida/shared-backend": "^0.2.12",
+    "@ikomida/shared-backend": "^0.2.18",
     "body-parser": "^1.20.0",
     "cors": "^2.8.5",
     "express": "^4.18.1",
