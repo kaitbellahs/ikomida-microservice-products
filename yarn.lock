@@ -229,13 +229,13 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/object-schema/-/object-schema-1.2.1.tgz#b520529ec21d8e5945a1851dfd1c32e94e39ff45"
   integrity sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==
 
-"@ikomida/shared-backend@^0.2.20":
-  version "0.2.20"
-  resolved "https://us-central1-npm.pkg.dev/ikomida-dev/node/@ikomida/shared-backend/-/@ikomida/shared-backend-0.2.20.tgz#864efbbd2d3d4667c1af1e3d0d93e6b98e171573"
-  integrity sha512-HIyV8NygYYzSD7YVW8IZ/uPFmyqw9JPof8jNxrQ1xFZQyBub7YNjVRafReo4w6aQf702zPC/N4gviASvQY8uuQ==
+"@ikomida/shared-backend@^1.0.0":
+  version "1.0.0"
+  resolved "https://us-central1-npm.pkg.dev/ikomida-dev/node/@ikomida/shared-backend/-/@ikomida/shared-backend-1.0.0.tgz#14e3bfee1089bc263d5aafeaefd48c604f739c95"
+  integrity sha512-amT6a5TVJsJh5TRrTtnetpUz8uZ3GQVvy1SXoh9bL1xuonnpCtRqZ9pK1rwu8+HEZwUZdOh3bNpA1GJl3kODtA==
   dependencies:
     "@ikomida/shared-logics" "^0.2.0"
-    "@ikomida/shared-types" "^1.0.7"
+    "@ikomida/shared-types" "^1.1.0"
     amqplib "^0.10.3"
     axios "^1.0.0"
     bcrypt "^5.0.1"
@@ -266,10 +266,10 @@
   resolved "https://us-central1-npm.pkg.dev/ikomida-dev/node/@ikomida/shared-types/-/@ikomida/shared-types-1.0.3.tgz#cbf184428f5ef159481af05f47cbaaae4e97366d"
   integrity sha512-H9C9zP4YZoSvYpq16T1ZRRX7jMWQmcoyJdLIxMWoIboYBBDXjPgnWVOsS3lU0I6+xlXiYoAEx42lmp39shSiVw==
 
-"@ikomida/shared-types@^1.0.7":
-  version "1.0.7"
-  resolved "https://us-central1-npm.pkg.dev/ikomida-dev/node/@ikomida/shared-types/-/@ikomida/shared-types-1.0.7.tgz#53bfc8cba161e6bcd18256977f49c107f5888126"
-  integrity sha512-4Mhwbek02WK9CW0SWpUkRSx0Sr1eGoq7woX4MQUc+iukuyiXsTHpNkCaso7ZJLBEQH9fBMyaumbpH2f3lUrAVA==
+"@ikomida/shared-types@^1.1.0":
+  version "1.1.0"
+  resolved "https://us-central1-npm.pkg.dev/ikomida-dev/node/@ikomida/shared-types/-/@ikomida/shared-types-1.1.0.tgz#354509c7e8656949286770aaa436a8db5387b591"
+  integrity sha512-fidMo20v+b64i/VXBRcdHeEy7NmYaKKvq1EQCX7I4QT7Ku9Hjh26JN++tLA1X4bot1W8KbL1aBB8mAsg/oXJrw==
 
 "@jridgewell/gen-mapping@^0.3.0":
   version "0.3.2"

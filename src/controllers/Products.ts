@@ -18,10 +18,10 @@ export default class Products {
     this.production = process.env.NODE_ENV === 'production'
   }
 
-  private countProductOptions(productOptionCategories: Types.Classes.CProductOptionCategory[]) {
+  private countProductOptions(productOptionsCategories: Types.Classes.CProductOptionsCategory[]) {
     let length = 0
-    for (const productOptionCategory of productOptionCategories) {
-      length += productOptionCategory.options.length
+    for (const productOptionsCategory of productOptionsCategories) {
+      length += productOptionsCategory.options.length
     }
     return Number(length)
   }
@@ -80,7 +80,7 @@ export default class Products {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_INVALID_CATEGORY)
       }
       const categoryModel = categories[0]
-      const productOptionCategories = await Promise.all(
+      const productOptionsCategories = await Promise.all(
         optionsCategories.map(async optionsCategory => {
           const productOptionategoryId = uuidv4()
           const image = await this.googleAdmin.uploadToStorage(
@@ -141,13 +141,13 @@ export default class Products {
           quantity: payload.quantity,
           image,
           productCategoryId: categoryModel.id,
-          productOptionCategories
+          productOptionsCategories
         },
         {
           transaction,
           include: [
             {
-              model: DBModels.ProductOptionCategoryModel,
+              model: DBModels.ProductOptionsCategoryModel,
               include: [DBModels.ProductOptionModel]
             }
           ]
@@ -265,7 +265,7 @@ export default class Products {
           })
         if (filtredOptionsCategories.length > 0) {
           for (const optionsCategory of filtredOptionsCategories) {
-            let productOptionsCategory: DBModels.ProductOptionCategoryModel | null
+            let productOptionsCategory: DBModels.ProductOptionsCategoryModel | null
             if (!optionsCategory.id) {
               const uuid = uuidv4()
               const image = await this.googleAdmin.uploadToStorage(
@@ -291,7 +291,7 @@ export default class Products {
               )
             } else {
               productOptionsCategory = (
-                await productModel.$get('productOptionCategories', {
+                await productModel.$get('productOptionsCategories', {
                   where: {
                     id: optionsCategory.id
                   }
@@ -470,7 +470,7 @@ export default class Products {
                 required: false
               },
               {
-                model: DBModels.ProductOptionCategoryModel,
+                model: DBModels.ProductOptionsCategoryModel,
                 required: false,
                 include: [
                   {
@@ -493,9 +493,9 @@ export default class Products {
       if (!productModel?.productCategory) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCT_NOT_FOUNT)
       }
-      const productOptionCategories = productModel?.productOptionCategories?.map(productOptionCategory => {
+      const productOptionsCategories = productModel?.productOptionsCategories?.map(productOptionsCategory => {
         const options =
-          productOptionCategory.productOptions?.map(productOption =>
+          productOptionsCategory.productOptions?.map(productOption =>
             Types.Classes.CProductOption.init(
               productOption.name ?? '',
               productOption.highlighted ?? false,
@@ -505,15 +505,15 @@ export default class Products {
               productOption.image
             )
           ) ?? []
-        return Types.Classes.CProductOptionCategory.init(
-          productOptionCategory.name ?? '',
-          productOptionCategory.highlighted ?? false,
-          productOptionCategory.min ?? 0,
-          productOptionCategory.max ?? 0,
-          productOptionCategory.order ?? 0,
+        return Types.Classes.CProductOptionsCategory.init(
+          productOptionsCategory.name ?? '',
+          productOptionsCategory.highlighted ?? false,
+          productOptionsCategory.min ?? 0,
+          productOptionsCategory.max ?? 0,
+          productOptionsCategory.order ?? 0,
           options,
-          productOptionCategory.image,
-          productOptionCategory.id
+          productOptionsCategory.image,
+          productOptionsCategory.id
         )
       })
       const productCategory = Types.Classes.CProductCategory.init(
@@ -534,7 +534,7 @@ export default class Products {
         productModel?.weight,
         productCategory,
         productModel?.image,
-        productOptionCategories,
+        productOptionsCategories,
         undefined,
         productModel?.createdAt,
         productModel?.id
@@ -581,7 +581,7 @@ export default class Products {
                 model: DBModels.ProductModel,
                 include: [
                   {
-                    model: DBModels.ProductOptionCategoryModel,
+                    model: DBModels.ProductOptionsCategoryModel,
                     required: false,
                     include: [
                       {
@@ -617,9 +617,9 @@ export default class Products {
             productModels.map(async (productModel: DBModels.ProductModel, j: number) => {
               productModel.order = productModel?.order ?? j
               await productModel?.save()
-              const productOptionCategories = productModel?.productOptionCategories?.map(productOptionCategory => {
+              const productOptionsCategories = productModel?.productOptionsCategories?.map(productOptionsCategory => {
                 const options =
-                  productOptionCategory.productOptions?.map(productOption =>
+                  productOptionsCategory.productOptions?.map(productOption =>
                     Types.Classes.CProductOption.init(
                       productOption.name ?? '',
                       productOption.highlighted ?? false,
@@ -629,15 +629,15 @@ export default class Products {
                       productOption.image
                     )
                   ) ?? []
-                return Types.Classes.CProductOptionCategory.init(
-                  productOptionCategory.name ?? '',
-                  productOptionCategory.highlighted ?? false,
-                  productOptionCategory.min ?? 0,
-                  productOptionCategory.max ?? 0,
-                  productOptionCategory.order ?? 0,
+                return Types.Classes.CProductOptionsCategory.init(
+                  productOptionsCategory.name ?? '',
+                  productOptionsCategory.highlighted ?? false,
+                  productOptionsCategory.min ?? 0,
+                  productOptionsCategory.max ?? 0,
+                  productOptionsCategory.order ?? 0,
                   options,
-                  productOptionCategory.image,
-                  productOptionCategory.id
+                  productOptionsCategory.image,
+                  productOptionsCategory.id
                 )
               })
               const product = Types.Classes.CProduct.init(
@@ -652,7 +652,7 @@ export default class Products {
                 productModel.weight,
                 undefined,
                 productModel.image,
-                productOptionCategories,
+                productOptionsCategories,
                 undefined,
                 productModel.createdAt,
                 productModel.id
@@ -830,7 +830,7 @@ export default class Products {
           productId: productModel.id
         }
       })
-      await DBModels.ProductOptionCategoryModel.destroy({
+      await DBModels.ProductOptionsCategoryModel.destroy({
         transaction,
         where: {
           contractId: contractModel.id,
@@ -910,7 +910,7 @@ export default class Products {
           }
         }
       })
-      await DBModels.ProductOptionCategoryModel.destroy({
+      await DBModels.ProductOptionsCategoryModel.destroy({
         transaction,
         where: {
           contractId: contractModel.id,
@@ -1026,7 +1026,7 @@ export default class Products {
           },
           { model: DBModels.PlanModel, required: true },
           {
-            model: DBModels.ProductOptionCategoryModel,
+            model: DBModels.ProductOptionsCategoryModel,
             required: false,
             where: {
               id
@@ -1037,19 +1037,19 @@ export default class Products {
       if (!contractModel) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORIES_INVALID_CONTRACT)
       }
-      const productOptionCategoryModels = contractModel?.productOptionCategories
-      if (productOptionCategoryModels?.length !== 1) {
+      const productOptionsCategoryModels = contractModel?.productOptionsCategories
+      if (productOptionsCategoryModels?.length !== 1) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORIES_NOT_FOUND)
       }
-      const productOptionCategoryModel = productOptionCategoryModels[0]
+      const productOptionsCategoryModel = productOptionsCategoryModels[0]
       await DBModels.ProductOptionModel.destroy({
         transaction,
         where: {
           contractId: contractModel.id,
-          productOptionCategoryId: productOptionCategoryModel.id
+          productOptionsCategoryId: productOptionsCategoryModel.id
         }
       })
-      await productOptionCategoryModel.destroy({ transaction })
+      await productOptionsCategoryModel.destroy({ transaction })
       await transaction.commit()
       return new Utils.Return(true)
     } catch (exception: any) {
