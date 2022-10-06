@@ -466,6 +466,10 @@ export default class Products {
             required: false,
             include: [
               {
+                model: DBModels.ProductCategoryModel,
+                required: false
+              },
+              {
                 model: DBModels.ProductOptionCategoryModel,
                 required: false,
                 include: [
@@ -482,10 +486,13 @@ export default class Products {
       if (!contractModel) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
       }
-      if ((contractModel.products?.length ?? 0) !== 1) {
+      if (contractModel.products?.length !== 1) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCT_NOT_FOUNT)
       }
       const productModel = contractModel.products?.[0]
+      if (!productModel?.productCategory) {
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCT_NOT_FOUNT)
+      }
       const productOptionCategories = productModel?.productOptionCategories?.map(productOptionCategory => {
         const options =
           productOptionCategory.productOptions?.map(productOption =>
@@ -509,6 +516,12 @@ export default class Products {
           productOptionCategory.id
         )
       })
+      const productCategory = Types.Classes.CProductCategory.init(
+        productModel?.productCategory.title ?? '',
+        undefined,
+        undefined,
+        productModel?.productCategory.id
+      )
       const product = Types.Classes.CProduct.init(
         productModel?.title ?? '-',
         productModel?.price ?? 0,
@@ -516,10 +529,10 @@ export default class Products {
         productModel?.discountType ?? Types.Types.TDiscount.NO,
         productModel?.quantity ?? 0,
         productModel?.description,
-        undefined,
+        productModel?.order,
         productModel?.serves,
         productModel?.weight,
-        undefined,
+        productCategory,
         productModel?.image,
         productOptionCategories,
         undefined,

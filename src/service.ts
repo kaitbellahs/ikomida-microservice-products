@@ -71,7 +71,7 @@ app.delete('/productoption/:id', async (req, res) => {
   }
 })
 
-app.delete('/optioncategory/:id', async (req, res) => {
+app.delete('/productoptioncategory/:id', async (req, res) => {
   const identity: Types.Classes.CUser = Types.Classes.CUser.fromObject(req.headers?.identity)
   const role = BackendTypes.Roles.valueOf(identity.role)
   if (role === BackendTypes.Roles.VENDOR) {
