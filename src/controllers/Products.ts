@@ -23,7 +23,7 @@ export default class Products {
     for (const productOptionCategory of productOptionCategories) {
       length += productOptionCategory.options.length
     }
-    return length
+    return Number(length)
   }
 
   async newProduct(identity: Types.Classes.CUser, input: any) {
@@ -71,18 +71,19 @@ export default class Products {
         )
       }
       const optionsCategories = payload.optionsCategories ?? []
-      const productOptionsLimit = contractModel.plan?.productOptions ?? -1
+      const productOptionsLimit = Number(contractModel.plan?.productOptions ?? -1)
       if (
-        contractModel.plan?.productOptions !== -1 &&
+        productOptionsLimit !== -1 &&
         this.countProductOptions(optionsCategories) > productOptionsLimit
       ) {
         throw new Utils.iKomidaError(this.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_OPTIONS_LIMIT, productOptionsLimit)
       }
       const categories = contractModel?.productCategories
-      if ((categories?.length ?? 0) !== 1) {
+      if (categories?.length !== 1) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_INVALID_CATEGORY)
       }
-      const productOptionsCategory: Types.Classes.CProductOptionCategory[] = await Promise.all(
+      const categoryModel = categories[0]
+      const productOptionCategories = await Promise.all(
         optionsCategories.map(async optionsCategory => {
           const productOptionategoryId = uuidv4()
           const image = await this.googleAdmin.uploadToStorage(
@@ -92,7 +93,7 @@ export default class Products {
             'productOptionsCategory',
             optionsCategory.image
           )
-          const options: Types.Classes.CProductOption[] = await Promise.all(
+          const options = await Promise.all(
             optionsCategory.options.map(async item => {
               const productOptionId = uuidv4()
               const image = await this.googleAdmin.uploadToStorage(
@@ -102,31 +103,48 @@ export default class Products {
                 'optionsCategory',
                 item.image
               )
-              return Types.Classes.CProductOption.init(
-                item.name,
-                item.highlighted,
-                item.price,
-                item.units,
-                item.order,
+              return {
+                name: item.name,
                 image,
-                productOptionId
-              )
+                highlighted: item.highlighted,
+                order: item.order,
+                price: item.price,
+                units: item.units,
+                productCategoryId: categoryModel.id,
+                contractId: contractModel.id
+              }
             })
           )
-          return Types.Classes.CProductOptionCategory.init(
-            optionsCategory.name,
-            optionsCategory.highlighted,
-            optionsCategory.min,
-            optionsCategory.max,
-            optionsCategory.order,
-            options,
+          return {
+            name: optionsCategory.name,
             image,
-            productOptionategoryId
-          )
+            highlighted: optionsCategory.highlighted,
+            min: optionsCategory.min,
+            max: optionsCategory.max,
+            order: optionsCategory.order,
+            productCategoryId: categoryModel.id,
+            contractId: contractModel.id,
+            productOptions: options
+          }
         })
       )
       const id = uuidv4()
       const image = await this.googleAdmin.uploadToStorage(identity, id, 'image', 'product', payload.image)
+      console.log('newProduct:',
+        JSON.stringify({
+          id: id,
+          title: payload.title,
+          description: payload.description,
+          serves: Logics.Finances.toFinanceNumber(payload.serves) ?? 1,
+          price: Logics.Finances.toFinanceNumber(payload.price),
+          discountType: payload.discountType,
+          discount: Logics.Finances.toFinanceNumber(payload.discount),
+          weight: Logics.Finances.toFinanceNumber(payload.weight),
+          quantity: payload.quantity,
+          image,
+          productCategoryId: categoryModel.id,
+          productOptionCategories
+        }))
       const productModel: DBModels.ProductModel = await contractModel.$create(
         'product',
         {
@@ -140,22 +158,15 @@ export default class Products {
           weight: Logics.Finances.toFinanceNumber(payload.weight),
           quantity: payload.quantity,
           image,
-          productCategory: categories?.[0],
-          productOptionsCategory
+          productCategoryId: categoryModel.id,
+          productOptionCategories
         },
         {
           transaction,
           include: [
             {
-              include: [
-                {
-                  model: DBModels.ProductCategoryModel
-                },
-                {
-                  model: DBModels.ProductOptionCategoryModel,
-                  include: [DBModels.ProductOptionModel]
-                }
-              ]
+              model: DBModels.ProductOptionCategoryModel,
+              include: [DBModels.ProductOptionModel]
             }
           ]
         }
@@ -419,7 +430,7 @@ export default class Products {
       if (!contractModel) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_CATEGORY_INVALID_CONTRACT)
       }
-      const productCategoryModels = await contractModel?.productCategories
+      const productCategoryModels = contractModel?.productCategories
       if (!productCategoryModels || (productCategoryModels?.length ?? 0) !== 1) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_CATEGORY_INVALID_CATEGORY)
       }
@@ -756,7 +767,7 @@ export default class Products {
       if (!contractModel) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_CATEGORIES_COUNT_INVALID_CONTRACT)
       }
-      const categoryModels = await contractModel?.productCategories
+      const categoryModels = contractModel?.productCategories
       const categories = categoryModels?.map(categoryModel => {
         return Types.Classes.CProductCategory.init(
           categoryModel?.title ?? '-',
