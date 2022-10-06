@@ -27,12 +27,12 @@ export default class Products {
   }
 
   async newProduct(identity: Types.Classes.CUser, input: any) {
+    const transaction = await Domain.SqlDB.sequelize.transaction()
     try {
       const payload: Types.Classes.CProduct = Types.Classes.CProduct.fromObject(input)
       const role = BackendTypes.Roles.valueOf(identity.role)
       if (!role || ![BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF].includes(role) || !payload.category?.id) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_UNAUTHORIZED)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_UNAUTHORIZED)
       }
       const contractModel = await DBModels.ContractModel.findOne({
         where: {
@@ -61,30 +61,26 @@ export default class Products {
         ]
       })
       if (!contractModel) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_INVALID_CONTRACT)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_INVALID_CONTRACT)
       }
       const productsLimit = contractModel?.plan?.products ?? -1
       if (productsLimit !== 0 && (contractModel?.products?.length ?? 0) >= productsLimit) {
-        const error = new Utils.iKomidaError(
+        throw new Utils.iKomidaError(
           Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_LIMIT_EXCEEDED,
           productsLimit
         )
-        return error.logAndReturn(this.logger)
       }
       const optionsCategories = payload.optionsCategories ?? []
       const productOptionsLimit = contractModel.plan?.productOptions ?? -1
-      if (this.countProductOptions(optionsCategories) > productOptionsLimit) {
-        const error = new Utils.iKomidaError(
-          this.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_OPTIONS_LIMIT,
-          productOptionsLimit
-        )
-        return error.logAndReturn(this.logger)
+      if (
+        contractModel.plan?.productOptions !== -1 &&
+        this.countProductOptions(optionsCategories) > productOptionsLimit
+      ) {
+        throw new Utils.iKomidaError(this.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_OPTIONS_LIMIT, productOptionsLimit)
       }
       const categories = contractModel?.productCategories
       if ((categories?.length ?? 0) !== 1) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_INVALID_CATEGORY)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_INVALID_CATEGORY)
       }
       const productOptionsCategory: Types.Classes.CProductOptionCategory[] = await Promise.all(
         optionsCategories.map(async optionsCategory => {
@@ -148,6 +144,7 @@ export default class Products {
           productOptionsCategory
         },
         {
+          transaction,
           include: [
             {
               include: [
@@ -163,22 +160,27 @@ export default class Products {
           ]
         }
       )
+      await transaction.commit()
       return new Utils.Return(productModel !== null)
     } catch (exception: any) {
-      const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      await transaction.rollback()
+      let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      if (exception instanceof Utils.iKomidaError) {
+        error = exception
+      }
       return error.logAndReturn(this.logger)
     }
   }
 
   async editProduct(identity: Types.Classes.CUser, input: any) {
+    const transaction = await Domain.SqlDB.sequelize.transaction()
     try {
       const payload: Types.Classes.CProduct = Types.Classes.CProduct.fromObject(input)
       const role = BackendTypes.Roles.valueOf(identity.role)
       const products = Array.isArray(payload) ? payload : [payload]
       for (const product of products) {
         if (role !== BackendTypes.Roles.VENDOR || !product?.id) {
-          const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_PRODUCT_UNAUTHORIZED)
-          return error.logAndReturn(this.logger)
+          throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_PRODUCT_UNAUTHORIZED)
         }
         const include: Domain.SqlDB.Includeable[] = [
           { model: DBModels.PlanModel, required: true },
@@ -218,36 +220,25 @@ export default class Products {
           include
         })
         if (!contractModel) {
-          const error = new Utils.iKomidaError(
-            Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_PRODUCT_INVALID_CONTRACT
-          )
-          return error.logAndReturn(this.logger)
+          throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_PRODUCT_INVALID_CONTRACT)
         }
         const optionsCategories = payload.optionsCategories ?? []
         const productOptionsLimit = contractModel?.plan?.productOptions ?? -1
         if (this.countProductOptions(optionsCategories) > productOptionsLimit) {
-          const error = new Utils.iKomidaError(
-            this.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_OPTIONS_LIMIT,
-            productOptionsLimit
-          )
-          return error.logAndReturn(this.logger)
+          throw new Utils.iKomidaError(this.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_OPTIONS_LIMIT, productOptionsLimit)
         }
         const productModels = contractModel?.products
         if (!productModels || productModels.length !== 1) {
-          const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_PRODUCT_INVALID_PRODUCT)
-          return error.logAndReturn(this.logger)
+          throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_PRODUCT_INVALID_PRODUCT)
         }
         const productModel = productModels?.[0]
         if (product?.category?.id) {
           const categories = contractModel?.productCategories
           if (categories?.length !== 1) {
-            const error = new Utils.iKomidaError(
-              Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_PRODUCT_INVALID_CATEGORY
-            )
-            return error.logAndReturn(this.logger)
+            throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_PRODUCT_INVALID_CATEGORY)
           }
           const category = categories[0]
-          await category.$add('product', productModel)
+          await productModel.$set('productCategory', category, { transaction })
         }
         productModel.order = product?.order ?? productModel.order
         productModel.title = product?.title ?? productModel.title
@@ -270,7 +261,7 @@ export default class Products {
           payload.image,
           productModel.image
         )
-        await productModel.save()
+        await productModel.save({ transaction })
         const filtredOptionsCategories = optionsCategories
           .map(optionsCategory => {
             optionsCategory.options = optionsCategory.options.filter(option => !option.id)
@@ -291,16 +282,20 @@ export default class Products {
                 'productOptionsCategory',
                 optionsCategory.image
               )
-              productOptionsCategory = await productModel.$create('productOptionsCategory', {
-                id: uuid,
-                name: optionsCategory.name,
-                image,
-                highlighted: optionsCategory.highlighted,
-                min: optionsCategory.min,
-                max: optionsCategory.max,
-                order: optionsCategory.order,
-                contract: contractModel
-              })
+              productOptionsCategory = await productModel.$create(
+                'productOptionsCategory',
+                {
+                  id: uuid,
+                  name: optionsCategory.name,
+                  image,
+                  highlighted: optionsCategory.highlighted,
+                  min: optionsCategory.min,
+                  max: optionsCategory.max,
+                  order: optionsCategory.order,
+                  contract: contractModel
+                },
+                { transaction }
+              )
             } else {
               productOptionsCategory = (
                 await productModel.$get('productOptionCategories', {
@@ -328,25 +323,30 @@ export default class Products {
                   })
                 }) as []
               )
-              await DBModels.ProductOptionModel.bulkCreate(options)
+              await DBModels.ProductOptionModel.bulkCreate(options, { transaction })
             }
           }
         }
       }
+      await transaction.commit()
       return new Utils.Return(true)
     } catch (exception: any) {
-      const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      await transaction.rollback()
+      let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      if (exception instanceof Utils.iKomidaError) {
+        error = exception
+      }
       return error.logAndReturn(this.logger)
     }
   }
 
   async newCategory(identity: Types.Classes.CUser, input: any) {
+    const transaction = await Domain.SqlDB.sequelize.transaction()
     try {
       const payload: Types.Classes.CProductCategory = Types.Classes.CProductCategory.fromObject(input)
       const role = BackendTypes.Roles.valueOf(identity.role)
       if (!role || ![BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF].includes(role)) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_CATEGORY_UNAUTHORIZED)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_CATEGORY_UNAUTHORIZED)
       }
       const contractModel = await DBModels.ContractModel.findOne({
         where: {
@@ -366,27 +366,31 @@ export default class Products {
         ]
       })
       if (!contractModel) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_CATEGORY_INVALID_CONTRACT)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_CATEGORY_INVALID_CONTRACT)
       }
       await contractModel.$create('productCategory', {
         title: payload.title,
         description: payload.description
       })
+      await transaction.commit()
       return new Utils.Return(true)
     } catch (exception: any) {
-      const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      await transaction.rollback()
+      let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      if (exception instanceof Utils.iKomidaError) {
+        error = exception
+      }
       return error.logAndReturn(this.logger)
     }
   }
 
   async editCategory(identity: Types.Classes.CUser, input: any) {
+    const transaction = await Domain.SqlDB.sequelize.transaction()
     try {
       const payload: Types.Classes.CProductCategory = Types.Classes.CProductCategory.fromObject(input)
       const role = BackendTypes.Roles.valueOf(identity.role)
       if (role !== BackendTypes.Roles.VENDOR) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_CATEGORY_UNAUTHORIZED)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_CATEGORY_UNAUTHORIZED)
       }
       const contractModel = await DBModels.ContractModel.findOne({
         where: {
@@ -413,21 +417,24 @@ export default class Products {
         ]
       })
       if (!contractModel) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_CATEGORY_INVALID_CONTRACT)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_CATEGORY_INVALID_CONTRACT)
       }
       const productCategoryModels = await contractModel?.productCategories
       if (!productCategoryModels || (productCategoryModels?.length ?? 0) !== 1) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_CATEGORY_INVALID_CATEGORY)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_CATEGORY_INVALID_CATEGORY)
       }
       await productCategoryModels[0].update({
         title: payload.title,
         description: payload.description
       })
+      await transaction.commit()
       return new Utils.Return(true)
     } catch (exception: any) {
-      const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      await transaction.rollback()
+      let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      if (exception instanceof Utils.iKomidaError) {
+        error = exception
+      }
       return error.logAndReturn(this.logger)
     }
   }
@@ -435,8 +442,7 @@ export default class Products {
   async getProduct(identity: Types.Classes.CUser, id?: string) {
     try {
       if (!Logics.Validations.validateUUID(id)) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCT_MISSING_DATA)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCT_MISSING_DATA)
       }
       const contractModel = await DBModels.ContractModel.findOne({
         where: {
@@ -481,12 +487,10 @@ export default class Products {
         ]
       })
       if (!contractModel) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
       }
       if ((contractModel.products?.length ?? 0) !== 1) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCT_NOT_FOUNT)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCT_NOT_FOUNT)
       }
       const productModel = contractModel.products?.[0]
       const productOptionCategories = productModel?.productOptionCategories?.map(productOptionCategory => {
@@ -531,7 +535,10 @@ export default class Products {
       )
       return new Utils.Return(true, product)
     } catch (exception: any) {
-      const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      if (exception instanceof Utils.iKomidaError) {
+        error = exception
+      }
       return error.logAndReturn(this.logger)
     }
   }
@@ -592,8 +599,7 @@ export default class Products {
         ]
       })
       if (!contractModel) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
       }
       const productsAndCategoriesModels = contractModel?.productCategories
       const productsAndCategories = await Promise.all(
@@ -675,92 +681,105 @@ export default class Products {
       )
       return new Utils.Return(true, productsAndCategories)
     } catch (exception: any) {
-      const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      if (exception instanceof Utils.iKomidaError) {
+        error = exception
+      }
       return error.logAndReturn(this.logger)
     }
   }
 
   async getProductsCount(identity: Types.Classes.CUser) {
-    const role = BackendTypes.Roles.valueOf(identity.role)
-    if (!role || ![BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF].includes(role)) {
-      return new Utils.Return(true, 0)
-    }
-    const contractModel = await DBModels.ContractModel.findOne({
-      where: {
-        ikomidaID: identity.ikomidaID
-      },
-      include: [
-        {
-          model: DBModels.UserModel,
-          required: true,
-          where: {
-            id: identity.id,
-            role: {
-              [Domain.SqlDB.Op.in]: [BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF, BackendTypes.Roles.ADMIN]
-            }
-          }
+    try {
+      const role = BackendTypes.Roles.valueOf(identity.role)
+      if (!role || ![BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF].includes(role)) {
+        return new Utils.Return(true, 0)
+      }
+      const contractModel = await DBModels.ContractModel.findOne({
+        where: {
+          ikomidaID: identity.ikomidaID
         },
-        { model: DBModels.PlanModel, required: true },
-        { model: DBModels.ProductModel, required: false }
-      ]
-    })
-    if (!contractModel) {
-      const error = new Utils.iKomidaError(
-        Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_COUNT_INVALID_CONTRACT
-      )
+        include: [
+          {
+            model: DBModels.UserModel,
+            required: true,
+            where: {
+              id: identity.id,
+              role: {
+                [Domain.SqlDB.Op.in]: [BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF, BackendTypes.Roles.ADMIN]
+              }
+            }
+          },
+          { model: DBModels.PlanModel, required: true },
+          { model: DBModels.ProductModel, required: false }
+        ]
+      })
+      if (!contractModel) {
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_COUNT_INVALID_CONTRACT)
+      }
+      const productModels = contractModel?.products
+      return new Utils.Return(true, productModels?.length)
+    } catch (exception: any) {
+      let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      if (exception instanceof Utils.iKomidaError) {
+        error = exception
+      }
       return error.logAndReturn(this.logger)
     }
-    const productModels = contractModel?.products
-    return new Utils.Return(true, productModels?.length)
   }
 
   async getCategories(identity: Types.Classes.CUser) {
-    const contractModel = await DBModels.ContractModel.findOne({
-      where: {
-        ikomidaID: identity.ikomidaID
-      },
-      include: [
-        {
-          model: DBModels.UserModel,
-          required: true,
-          where: {
-            id: identity.id,
-            role: {
-              [Domain.SqlDB.Op.in]: [BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF, BackendTypes.Roles.ADMIN]
-            }
-          }
+    try {
+      const contractModel = await DBModels.ContractModel.findOne({
+        where: {
+          ikomidaID: identity.ikomidaID
         },
-        { model: DBModels.PlanModel, required: true },
-        {
-          model: DBModels.ProductCategoryModel,
-          required: false,
-          order: [['title', 'ASC']]
-        }
-      ]
-    })
-    if (!contractModel) {
-      const error = new Utils.iKomidaError(
-        Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_CATEGORIES_COUNT_INVALID_CONTRACT
-      )
+        include: [
+          {
+            model: DBModels.UserModel,
+            required: true,
+            where: {
+              id: identity.id,
+              role: {
+                [Domain.SqlDB.Op.in]: [BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF, BackendTypes.Roles.ADMIN]
+              }
+            }
+          },
+          { model: DBModels.PlanModel, required: true },
+          {
+            model: DBModels.ProductCategoryModel,
+            required: false,
+            order: [['title', 'ASC']]
+          }
+        ]
+      })
+      if (!contractModel) {
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_CATEGORIES_COUNT_INVALID_CONTRACT)
+      }
+      const categoryModels = await contractModel?.productCategories
+      const categories = categoryModels?.map(categoryModel => {
+        return Types.Classes.CProductCategory.init(
+          categoryModel?.title ?? '-',
+          undefined,
+          categoryModel?.description,
+          categoryModel?.id
+        )
+      })
+      return new Utils.Return(true, categories)
+    } catch (exception: any) {
+      let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      if (exception instanceof Utils.iKomidaError) {
+        error = exception
+      }
       return error.logAndReturn(this.logger)
     }
-    const categoryModels = await contractModel?.productCategories
-    const categories = categoryModels?.map(categoryModel => {
-      return Types.Classes.CProductCategory.init(
-        categoryModel?.title ?? '-',
-        undefined,
-        categoryModel?.description,
-        categoryModel?.id
-      )
-    })
-    return new Utils.Return(true, categories)
   }
 
   async deleteProduct(identity: Types.Classes.CUser, id?: string) {
+    const transaction = await Domain.SqlDB.sequelize.transaction()
     try {
       if (!Logics.Validations.validateUUID(id)) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_PRODUCT_MISSING_DATA)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_PRODUCT_MISSING_DATA)
       }
       const role = BackendTypes.Roles.valueOf(identity.role)
       if (role !== BackendTypes.Roles.VENDOR) {
@@ -792,42 +811,45 @@ export default class Products {
         ]
       })
       if (!contractModel) {
-        const error = new Utils.iKomidaError(
-          Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_PRODUCT_INVALID_CONTRACT
-        )
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_PRODUCT_INVALID_CONTRACT)
       }
       const productModels = contractModel?.products
       if (!productModels || productModels.length !== 1) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_PRODUCT_NOT_FOUND)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_PRODUCT_NOT_FOUND)
       }
       const productModel = productModels[0]
       await DBModels.ProductOptionModel.destroy({
+        transaction,
         where: {
           contractId: contractModel.id,
           productId: productModel.id
         }
       })
       await DBModels.ProductOptionCategoryModel.destroy({
+        transaction,
         where: {
           contractId: contractModel.id,
           productId: productModel.id
         }
       })
-      await productModel.destroy()
+      await productModel.destroy({ transaction })
+      await transaction.commit()
       return new Utils.Return(true)
     } catch (exception: any) {
-      const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      await transaction.rollback()
+      let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      if (exception instanceof Utils.iKomidaError) {
+        error = exception
+      }
       return error.logAndReturn(this.logger)
     }
   }
 
   async deleteCategory(identity: Types.Classes.CUser, id?: string) {
+    const transaction = await Domain.SqlDB.sequelize.transaction()
     try {
       if (!Logics.Validations.validateUUID(id)) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORY_MISSING_DATA)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORY_MISSING_DATA)
       }
       const role = BackendTypes.Roles.valueOf(identity.role)
       if (role !== BackendTypes.Roles.VENDOR) {
@@ -865,19 +887,16 @@ export default class Products {
         ]
       })
       if (!contractModel) {
-        const error = new Utils.iKomidaError(
-          Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORIES_INVALID_CONTRACT
-        )
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORIES_INVALID_CONTRACT)
       }
       const categoryModels = contractModel?.productCategories
       if (categoryModels?.length !== 1) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORIES_NOT_FOUND)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORIES_NOT_FOUND)
       }
       const categoryModel = categoryModels[0]
       const productsIds = categoryModel.products?.map(product => product.id) ?? []
       await DBModels.ProductOptionModel.destroy({
+        transaction,
         where: {
           contractId: contractModel.id,
           productCategoryId: categoryModel.id,
@@ -887,6 +906,7 @@ export default class Products {
         }
       })
       await DBModels.ProductOptionCategoryModel.destroy({
+        transaction,
         where: {
           contractId: contractModel.id,
           productCategoryId: categoryModel.id,
@@ -896,6 +916,7 @@ export default class Products {
         }
       })
       await DBModels.ProductModel.destroy({
+        transaction,
         where: {
           contractId: contractModel.id,
           productCategoryId: categoryModel.id,
@@ -904,19 +925,24 @@ export default class Products {
           }
         }
       })
-      await categoryModel.destroy()
+      await categoryModel.destroy({ transaction })
+      await transaction.commit()
       return new Utils.Return(true)
     } catch (exception: any) {
-      const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      await transaction.rollback()
+      let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      if (exception instanceof Utils.iKomidaError) {
+        error = exception
+      }
       return error.logAndReturn(this.logger)
     }
   }
 
   async deleteProductOption(identity: Types.Classes.CUser, id?: string) {
+    const transaction = await Domain.SqlDB.sequelize.transaction()
     try {
       if (!Logics.Validations.validateUUID(id)) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_PRODUCT_MISSING_DATA)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_PRODUCT_MISSING_DATA)
       }
       const role = BackendTypes.Roles.valueOf(identity.role)
       if (role !== BackendTypes.Roles.VENDOR) {
@@ -948,30 +974,31 @@ export default class Products {
         ]
       })
       if (!contractModel) {
-        const error = new Utils.iKomidaError(
-          Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_PRODUCT_INVALID_CONTRACT
-        )
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_PRODUCT_INVALID_CONTRACT)
       }
       const productOptionModels = contractModel?.productOptions
       if (!productOptionModels || productOptionModels.length !== 1) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_PRODUCT_NOT_FOUND)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_PRODUCT_NOT_FOUND)
       }
       const productOptionModel = productOptionModels[0]
-      await productOptionModel.destroy()
+      await productOptionModel.destroy({ transaction })
+      await transaction.commit()
       return new Utils.Return(true)
     } catch (exception: any) {
-      const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      await transaction.rollback()
+      let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      if (exception instanceof Utils.iKomidaError) {
+        error = exception
+      }
       return error.logAndReturn(this.logger)
     }
   }
 
   async deleteCategoryOptions(identity: Types.Classes.CUser, id?: string) {
+    const transaction = await Domain.SqlDB.sequelize.transaction()
     try {
       if (!Logics.Validations.validateUUID(id)) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORY_MISSING_DATA)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORY_MISSING_DATA)
       }
       const role = BackendTypes.Roles.valueOf(identity.role)
       if (role !== BackendTypes.Roles.VENDOR) {
@@ -1003,27 +1030,29 @@ export default class Products {
         ]
       })
       if (!contractModel) {
-        const error = new Utils.iKomidaError(
-          Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORIES_INVALID_CONTRACT
-        )
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORIES_INVALID_CONTRACT)
       }
       const productOptionCategoryModels = contractModel?.productOptionCategories
       if (productOptionCategoryModels?.length !== 1) {
-        const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORIES_NOT_FOUND)
-        return error.logAndReturn(this.logger)
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORIES_NOT_FOUND)
       }
       const productOptionCategoryModel = productOptionCategoryModels[0]
       await DBModels.ProductOptionModel.destroy({
+        transaction,
         where: {
           contractId: contractModel.id,
           productOptionCategoryId: productOptionCategoryModel.id
         }
       })
-      await productOptionCategoryModel.destroy()
+      await productOptionCategoryModel.destroy({ transaction })
+      await transaction.commit()
       return new Utils.Return(true)
     } catch (exception: any) {
-      const error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      await transaction.rollback()
+      let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      if (exception instanceof Utils.iKomidaError) {
+        error = exception
+      }
       return error.logAndReturn(this.logger)
     }
   }
