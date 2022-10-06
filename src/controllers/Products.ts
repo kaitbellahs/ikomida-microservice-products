@@ -216,8 +216,8 @@ export default class Products {
           throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_PRODUCT_INVALID_CONTRACT)
         }
         const optionsCategories = payload.optionsCategories ?? []
-        const productOptionsLimit = contractModel?.plan?.productOptions ?? -1
-        if (this.countProductOptions(optionsCategories) > productOptionsLimit) {
+        const productOptionsLimit = Number(contractModel.plan?.productOptions ?? -1)
+        if (productOptionsLimit !== -1 && this.countProductOptions(optionsCategories) > productOptionsLimit) {
           throw new Utils.iKomidaError(this.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_OPTIONS_LIMIT, productOptionsLimit)
         }
         const productModels = contractModel?.products
