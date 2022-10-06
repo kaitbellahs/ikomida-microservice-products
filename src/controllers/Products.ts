@@ -72,10 +72,7 @@ export default class Products {
       }
       const optionsCategories = payload.optionsCategories ?? []
       const productOptionsLimit = Number(contractModel.plan?.productOptions ?? -1)
-      if (
-        productOptionsLimit !== -1 &&
-        this.countProductOptions(optionsCategories) > productOptionsLimit
-      ) {
+      if (productOptionsLimit !== -1 && this.countProductOptions(optionsCategories) > productOptionsLimit) {
         throw new Utils.iKomidaError(this.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_OPTIONS_LIMIT, productOptionsLimit)
       }
       const categories = contractModel?.productCategories
@@ -130,21 +127,6 @@ export default class Products {
       )
       const id = uuidv4()
       const image = await this.googleAdmin.uploadToStorage(identity, id, 'image', 'product', payload.image)
-      console.log('newProduct:',
-        JSON.stringify({
-          id: id,
-          title: payload.title,
-          description: payload.description,
-          serves: Logics.Finances.toFinanceNumber(payload.serves) ?? 1,
-          price: Logics.Finances.toFinanceNumber(payload.price),
-          discountType: payload.discountType,
-          discount: Logics.Finances.toFinanceNumber(payload.discount),
-          weight: Logics.Finances.toFinanceNumber(payload.weight),
-          quantity: payload.quantity,
-          image,
-          productCategoryId: categoryModel.id,
-          productOptionCategories
-        }))
       const productModel: DBModels.ProductModel = await contractModel.$create(
         'product',
         {
@@ -622,7 +604,6 @@ export default class Products {
             productModels.map(async (productModel: DBModels.ProductModel, j: number) => {
               productModel.order = productModel?.order ?? j
               await productModel?.save()
-
               const productOptionCategories = productModel?.productOptionCategories?.map(productOptionCategory => {
                 const options =
                   productOptionCategory.productOptions?.map(productOption =>
