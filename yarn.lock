@@ -229,13 +229,13 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/object-schema/-/object-schema-1.2.1.tgz#b520529ec21d8e5945a1851dfd1c32e94e39ff45"
   integrity sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==
 
-"@ikomida/shared-backend@^0.2.19":
-  version "0.2.19"
-  resolved "https://us-central1-npm.pkg.dev/ikomida-dev/node/@ikomida/shared-backend/-/@ikomida/shared-backend-0.2.19.tgz#fc379935a13ac6929fe7042339fa016066a859b7"
-  integrity sha512-f3JqifG3WdCl3OFwewqGJYtiQWJi7q3qTphs004OwT5Tc39AJpwmkOIyuzMavzf6W9hGvpQ5Ko4rHdEDntkFRw==
+"@ikomida/shared-backend@^0.2.20":
+  version "0.2.20"
+  resolved "https://us-central1-npm.pkg.dev/ikomida-dev/node/@ikomida/shared-backend/-/@ikomida/shared-backend-0.2.20.tgz#864efbbd2d3d4667c1af1e3d0d93e6b98e171573"
+  integrity sha512-HIyV8NygYYzSD7YVW8IZ/uPFmyqw9JPof8jNxrQ1xFZQyBub7YNjVRafReo4w6aQf702zPC/N4gviASvQY8uuQ==
   dependencies:
     "@ikomida/shared-logics" "^0.2.0"
-    "@ikomida/shared-types" "^1.0.6"
+    "@ikomida/shared-types" "^1.0.7"
     amqplib "^0.10.3"
     axios "^1.0.0"
     bcrypt "^5.0.1"
@@ -266,10 +266,10 @@
   resolved "https://us-central1-npm.pkg.dev/ikomida-dev/node/@ikomida/shared-types/-/@ikomida/shared-types-1.0.3.tgz#cbf184428f5ef159481af05f47cbaaae4e97366d"
   integrity sha512-H9C9zP4YZoSvYpq16T1ZRRX7jMWQmcoyJdLIxMWoIboYBBDXjPgnWVOsS3lU0I6+xlXiYoAEx42lmp39shSiVw==
 
-"@ikomida/shared-types@^1.0.6":
-  version "1.0.6"
-  resolved "https://us-central1-npm.pkg.dev/ikomida-dev/node/@ikomida/shared-types/-/@ikomida/shared-types-1.0.6.tgz#61be2d3cac92eedfa59d5418b319c4c58c7c256d"
-  integrity sha512-OubdB8BBvtG/6ttd83ZuOfkK8O6Q9p/OhgjSkE7Qi+qYmGX18B8ATgYzd7CsYVuYZOKannn89rDhPmJlANZCRw==
+"@ikomida/shared-types@^1.0.7":
+  version "1.0.7"
+  resolved "https://us-central1-npm.pkg.dev/ikomida-dev/node/@ikomida/shared-types/-/@ikomida/shared-types-1.0.7.tgz#53bfc8cba161e6bcd18256977f49c107f5888126"
+  integrity sha512-4Mhwbek02WK9CW0SWpUkRSx0Sr1eGoq7woX4MQUc+iukuyiXsTHpNkCaso7ZJLBEQH9fBMyaumbpH2f3lUrAVA==
 
 "@jridgewell/gen-mapping@^0.3.0":
   version "0.3.2"
