@@ -1,5 +1,5 @@
 import { Domain, Utils, BackendTypes, Types, Logics, DBModels } from '@ikomida/shared-backend'
-import { IiKomidaErrorModel } from '@ikomida/shared-backend/lib/Utils/iKomidaError'
+import { IiKomidaErrorModel } from '@ikomida/shared-backend/lib/Utils/iKomidaError.js'
 import { v4 as uuidv4 } from 'uuid'
 
 export default class Products {
@@ -18,11 +18,25 @@ export default class Products {
     this.production = process.env.NODE_ENV === 'production'
   }
 
-  private countProductOptions(productOptionsCategories: Types.Classes.CProductOptionsCategory[]) {
+  private countProductOptions(
+    productOptionsCategories: Types.Classes.CProductOptionsCategory[],
+    producOptionsCategoryModels?: DBModels.ProductOptionsCategoryModel[]
+  ) {
     let length = 0
+    const producOptionModelIds: (string | undefined)[] =
+      producOptionsCategoryModels?.flatMap(producOptionsCategoryModel => {
+        const producOptionsModels =
+          producOptionsCategoryModel.productOptions?.flatMap(producOption => producOption.id) ?? []
+        length += producOptionsModels.length
+        return producOptionsModels
+      }) ?? []
+    const options: Types.Classes.CProductOption[] = []
     for (const productOptionsCategory of productOptionsCategories) {
-      length += productOptionsCategory.options.length
+      options.push(...productOptionsCategory.options)
     }
+
+    const filtredOptions = options.filter(option => !option.id || !producOptionModelIds.includes(option.id))
+    length += filtredOptions.length
     return Number(length)
   }
 
@@ -188,13 +202,19 @@ export default class Products {
             }
           },
           { model: DBModels.PlanModel, required: true },
-          { model: DBModels.ProductModel, required: false },
           {
             model: DBModels.ProductModel,
             required: false,
             where: {
               id: product?.id
-            }
+            },
+            include: [
+              {
+                model: DBModels.ProductOptionsCategoryModel,
+                required: false,
+                include: [{ model: DBModels.ProductOptionModel, required: false }]
+              }
+            ]
           }
         ]
         if (product?.category?.id) {
@@ -215,23 +235,27 @@ export default class Products {
         if (!contractModel) {
           throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_PRODUCT_INVALID_CONTRACT)
         }
-        const optionsCategories = payload.optionsCategories ?? []
-        const productOptionsLimit = Number(contractModel.plan?.productOptions ?? -1)
-        if (productOptionsLimit !== -1 && this.countProductOptions(optionsCategories) > productOptionsLimit) {
-          throw new Utils.iKomidaError(this.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_OPTIONS_LIMIT, productOptionsLimit)
-        }
         const productModels = contractModel?.products
         if (!productModels || productModels.length !== 1) {
           throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_PRODUCT_INVALID_PRODUCT)
         }
         const productModel = productModels?.[0]
+        const optionsCategories = payload.optionsCategories ?? []
+        const productOptionsLimit = Number(contractModel.plan?.productOptions ?? -1)
+        if (
+          productOptionsLimit !== -1 &&
+          this.countProductOptions(optionsCategories, productModel.productOptionsCategories) > productOptionsLimit
+        ) {
+          throw new Utils.iKomidaError(this.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_OPTIONS_LIMIT, productOptionsLimit)
+        }
+        let productCategoryModel = contractModel.productCategories?.[0]
         if (product?.category?.id) {
           const categories = contractModel?.productCategories
           if (categories?.length !== 1) {
             throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_PRODUCT_INVALID_CATEGORY)
           }
-          const category = categories[0]
-          await productModel.$set('productCategory', category, { transaction })
+          productCategoryModel = categories[0]
+          productModel.productCategoryId = productCategoryModel.id
         }
         productModel.order = product?.order ?? productModel.order
         productModel.title = product?.title ?? productModel.title
@@ -254,72 +278,111 @@ export default class Products {
           payload.image,
           productModel.image
         )
-        await productModel.save({ transaction })
-        const filtredOptionsCategories = optionsCategories
-          .map(optionsCategory => {
-            optionsCategory.options = optionsCategory.options.filter(option => !option.id)
-            return optionsCategory
-          })
-          .filter(optionsCategory => {
-            return optionsCategory.options.length > 0 || !optionsCategory.id
-          })
-        if (filtredOptionsCategories.length > 0) {
-          for (const optionsCategory of filtredOptionsCategories) {
-            let productOptionsCategory: DBModels.ProductOptionsCategoryModel | null
-            if (!optionsCategory.id) {
-              const uuid = uuidv4()
-              const image = await this.googleAdmin.uploadToStorage(
-                identity,
-                uuid,
-                'image',
-                'productOptionsCategory',
-                optionsCategory.image
-              )
-              productOptionsCategory = await productModel.$create(
-                'productOptionsCategory',
-                {
-                  id: uuid,
-                  name: optionsCategory.name,
-                  image,
-                  highlighted: optionsCategory.highlighted,
-                  min: optionsCategory.min,
-                  max: optionsCategory.max,
-                  order: optionsCategory.order,
-                  contract: contractModel
-                },
-                { transaction }
-              )
+        const producOptionsCategoryModelIds: (string | undefined)[] =
+          productModel.productOptionsCategories?.flatMap(producOptionsCategoryModel => producOptionsCategoryModel.id) ??
+          []
+        for (const optionsCategory of optionsCategories) {
+          let productOptionsCategoryModel = productModel.productOptionsCategories?.filter(
+            productOptionsCategory => productOptionsCategory.id === optionsCategory.id
+          )[0]
+          const uuid = productOptionsCategoryModel?.id ?? uuidv4()
+          const image = await this.googleAdmin.uploadToStorage(
+            identity,
+            uuid,
+            'image',
+            'productOptionsCategory',
+            optionsCategory.image
+          )
+          if (!producOptionsCategoryModelIds.includes(optionsCategory.id)) {
+            productOptionsCategoryModel = await productModel.$create(
+              'productOptionsCategory',
+              {
+                id: uuid,
+                name: optionsCategory.name,
+                image,
+                highlighted: optionsCategory.highlighted,
+                min: optionsCategory.min,
+                max: optionsCategory.max,
+                order: optionsCategory.order,
+                contract: contractModel
+              },
+              { transaction }
+            )
+          } else {
+            if (productOptionsCategoryModel) {
+              productOptionsCategoryModel.image = image
+              productOptionsCategoryModel.name = optionsCategory.name
+              productOptionsCategoryModel.highlighted = optionsCategory.highlighted
+              productOptionsCategoryModel.min = optionsCategory.min
+              productOptionsCategoryModel.max = optionsCategory.max
+              productOptionsCategoryModel.order = optionsCategory.order
+              productOptionsCategoryModel.save({ transaction })
             } else {
-              productOptionsCategory = (
-                await productModel.$get('productOptionsCategories', {
-                  where: {
-                    id: optionsCategory.id
-                  }
-                })
-              )?.[0]
+              throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION)
             }
-            if (optionsCategory.options && optionsCategory.options.length > 0) {
-              const options = await Promise.all(
-                optionsCategory.options.map(async item => {
-                  const uuid = uuidv4()
-                  const image = await this.googleAdmin.uploadToStorage(
-                    identity,
-                    uuid,
-                    'image',
-                    'optionsCategory',
-                    item.image
-                  )
-                  return Object.assign(item, {
-                    contract: contractModel,
-                    productOptionsCategory,
-                    image
-                  })
-                }) as []
-              )
-              await DBModels.ProductOptionModel.bulkCreate(options, { transaction })
+          }
+          const options = optionsCategory.options
+          if (productOptionsCategoryModel && options && options.length > 0) {
+            const producOptionModelIds: (string | undefined)[] =
+              productOptionsCategoryModel.productOptions?.flatMap(producOptionModel => producOptionModel.id) ?? []
+            const newOptions = options
+              .filter(option => !producOptionModelIds.includes(option.id))
+              .filter(option => {
+                return !option.id
+              })
+            const newOptionModels = await Promise.all(
+              newOptions.map(async option => {
+                const uuid = uuidv4()
+                const image = await this.googleAdmin.uploadToStorage(
+                  identity,
+                  uuid,
+                  'image',
+                  'optionsCategory',
+                  option.image
+                )
+                return Object.assign(option, {
+                  contractId: contractModel.id,
+                  productOptionsCategoryId: productOptionsCategoryModel?.id,
+                  productId: productModel.id,
+                  productCategoryId: productCategoryModel?.id,
+                  image
+                })
+              }) as []
+            )
+            if (newOptionModels.length > 0) {
+              await DBModels.ProductOptionModel.bulkCreate(newOptionModels, { transaction })
+            }
+            const oldOptions = options
+              .filter(option => producOptionModelIds.includes(option.id))
+              .filter(option => {
+                return option.id
+              })
+            for (const oldOption of oldOptions) {
+              const productOptionModel = productOptionsCategoryModel?.productOptions?.filter(
+                productOptionModel => productOptionModel.id === oldOption.id
+              )?.[0]
+              if (productOptionModel && productOptionModel?.id) {
+                const image = await this.googleAdmin.uploadToStorage(
+                  identity,
+                  productOptionModel.id,
+                  'image',
+                  'optionsCategory',
+                  oldOption.image
+                )
+                productOptionModel.name = oldOption.name
+                productOptionModel.image = image
+                productOptionModel.highlighted = oldOption.highlighted
+                productOptionModel.order = oldOption.order
+                productOptionModel.price = oldOption.price
+                productOptionModel.units = oldOption.units
+                productOptionModel.save({ transaction })
+              } else {
+                throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION)
+              }
             }
           }
         }
+        await productModel.save({ transaction })
       }
       await transaction.commit()
       return new Utils.Return(true)
