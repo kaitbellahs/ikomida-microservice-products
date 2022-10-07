@@ -1,6 +1,6 @@
 {
   "name": "ikomida-products-service",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "ikomida products service",
   "private": true,
   "module": "build/service.js",
