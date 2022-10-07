@@ -21,7 +21,7 @@ spec:
         fsGroup: 2000
         runAsNonRoot: true
       containers:
-        - image: $GKE_ZONE-docker.pkg.dev/$PROJECT_ID/docker/$NAME-$TYPE-image:$PACKAGE_VERSION
+        - image: $GCLOUD_LOCATION-docker.pkg.dev/$PROJECT_ID/docker/$NAME-$TYPE-image:$PACKAGE_VERSION
           name: $NAME-$TYPE
           securityContext:
             allowPrivilegeEscalation: false
