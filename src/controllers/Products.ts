@@ -502,7 +502,8 @@ export default class Products {
               productOption.price ?? 0,
               productOption.units ?? 0,
               productOption.order ?? 0,
-              productOption.image
+              productOption.image,
+              productOption.id
             )
           ) ?? []
         return Types.Classes.CProductOptionsCategory.init(
@@ -626,7 +627,8 @@ export default class Products {
                       productOption.price ?? 0,
                       productOption.units ?? 0,
                       productOption.order ?? 0,
-                      productOption.image
+                      productOption.image,
+                      productOption.id
                     )
                   ) ?? []
                 return Types.Classes.CProductOptionsCategory.init(
