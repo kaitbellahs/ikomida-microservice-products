@@ -218,15 +218,15 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/object-schema/-/object-schema-1.2.1.tgz#b520529ec21d8e5945a1851dfd1c32e94e39ff45"
   integrity sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==
 
-"@ikomida/shared-backend@^1.0.1":
-  version "1.0.1"
-  resolved "https://us-central1-npm.pkg.dev/ikomida-dev/node/@ikomida/shared-backend/-/@ikomida/shared-backend-1.0.1.tgz#254769effed227a925ccb65c4ac23f46c53b6a3f"
-  integrity sha512-Q88ARY6Winq7kXSiT0gxMHuPjYyhkHkJYGIeue/x57EbsQ9WgVyKrTJQX7HhHnjTrZLByTqPaKluBJU7/uXSBA==
+"@ikomida/shared-backend@^1.0.2":
+  version "1.0.2"
+  resolved "https://us-central1-npm.pkg.dev/ikomida-dev/node/@ikomida/shared-backend/-/@ikomida/shared-backend-1.0.2.tgz#a682e4b96380714e0bf4628e9b9845ed16207b6b"
+  integrity sha512-DF+NSCoLayBniz8WGd/fnSbSapRs1kCur49V7ZNxQoZIZp+ZkQ7I9eEgrdSzSZNhnFiaaf6mswvmhsugAjfsGg==
   dependencies:
-    "@ikomida/shared-logics" "^0.2.0"
+    "@ikomida/shared-logics" "^0.2.3"
     "@ikomida/shared-types" "^1.1.1"
     amqplib "^0.10.3"
-    axios "^1.0.0"
+    axios "^1.1.0"
     bcrypt "^5.1.0"
     firebase-admin "^11.1.0"
     jose "^4.10.0"
@@ -240,20 +240,12 @@
     uuid "^9.0.0"
     xml-js "^1.6.11"
 
-"@ikomida/shared-logics@^0.2.0":
-  version "0.2.0"
-  resolved "https://us-central1-npm.pkg.dev/ikomida-dev/node/@ikomida/shared-logics/-/@ikomida/shared-logics-0.2.0.tgz#53afdb96bc9e72affef002396fa22eeaf6d19150"
-  integrity sha512-0J49S41iGHA4UlcluRN7MjCxPdicmMUaos7k2N2zh77SeZ/UWebV7XCOUzIkj1yJqnb4bt4XJoqKFSdYiVhVRA==
+"@ikomida/shared-logics@^0.2.3":
+  version "0.2.3"
+  resolved "https://us-central1-npm.pkg.dev/ikomida-dev/node/@ikomida/shared-logics/-/@ikomida/shared-logics-0.2.3.tgz#084b2c6a3165b2f518b0cba715b1df7ab431c9b9"
+  integrity sha512-kpaSHvf/cbG7bsmJyLkBxtpmSfN0gir3ZuoC0Q4z0kV8L8DyKNU0YdFdd2tuAqzozh3AW8y9njkhULvw/9ldmg==
   dependencies:
-    "@ikomida/shared-types" "^1.0.2"
-    "@types/uuid" "^8.3.4"
     luxon "^3.0.4"
-    uuid "^9.0.0"
-
-"@ikomida/shared-types@^1.0.2":
-  version "1.0.3"
-  resolved "https://us-central1-npm.pkg.dev/ikomida-dev/node/@ikomida/shared-types/-/@ikomida/shared-types-1.0.3.tgz#cbf184428f5ef159481af05f47cbaaae4e97366d"
-  integrity sha512-H9C9zP4YZoSvYpq16T1ZRRX7jMWQmcoyJdLIxMWoIboYBBDXjPgnWVOsS3lU0I6+xlXiYoAEx42lmp39shSiVw==
 
 "@ikomida/shared-types@^1.1.1":
   version "1.1.1"
@@ -958,10 +950,10 @@ axios@^0.27.2:
     follow-redirects "^1.14.9"
     form-data "^4.0.0"
 
-axios@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/axios/-/axios-1.0.0.tgz#16ded6096c1d37650db9f6a8d48a2f7c1bb58622"
-  integrity sha512-SsHsGFN1qNPFT5QhSoSD37SHDfGyLSW5AESmyLk2JeCMHv5g0I9g0Hz/zQHx2KNe0jGXh2q2hAm7OdkXm360CA==
+axios@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/axios/-/axios-1.1.0.tgz#94d25e6524743c7fc33954dd536687bbb957793a"
+  integrity sha512-hsJgcqz4JY7f+HZ4cWTrPZ6tZNCNFPTRx1MjRqu/hbpgpHdSCUpLVuplc+jE/h7dOvyANtw/ERA3HC2Rz/QoMg==
   dependencies:
     follow-redirects "^1.15.0"
     form-data "^4.0.0"
