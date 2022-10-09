@@ -142,7 +142,7 @@ export default class Products {
           }
         })
       )
-      const image = await this.googleAdmin.uploadToStorage(identity, id, 'image', 'product', payload.image)
+      const image = await this.googleAdmin.uploadToStorage(identity, productId, 'image', 'product', payload.image)
       const productModel: DBModels.ProductModel = await contractModel.$create(
         'product',
         {
