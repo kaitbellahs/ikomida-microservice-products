@@ -93,6 +93,7 @@ export default class Products {
       if (categories?.length !== 1) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_INVALID_CATEGORY)
       }
+      const productId = uuidv4()
       const categoryModel = categories[0]
       const productOptionsCategories = await Promise.all(
         optionsCategories.map(async optionsCategory => {
@@ -122,7 +123,8 @@ export default class Products {
                 price: item.price,
                 units: item.units,
                 productCategoryId: categoryModel.id,
-                contractId: contractModel.id
+                contractId: contractModel.id,
+                productId
               }
             })
           )
@@ -135,16 +137,16 @@ export default class Products {
             order: optionsCategory.order,
             productCategoryId: categoryModel.id,
             contractId: contractModel.id,
-            productOptions: options
+            productOptions: options,
+            productId
           }
         })
       )
-      const id = uuidv4()
       const image = await this.googleAdmin.uploadToStorage(identity, id, 'image', 'product', payload.image)
       const productModel: DBModels.ProductModel = await contractModel.$create(
         'product',
         {
-          id: id,
+          id: productId,
           title: payload.title,
           description: payload.description,
           serves: Logics.Finances.toFinanceNumber(payload.serves) ?? 1,
