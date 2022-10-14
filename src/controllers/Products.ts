@@ -41,7 +41,6 @@ export default class Products {
   }
 
   async newProduct(identity: Types.Classes.CUser, input: any) {
-    const transaction = await Domain.SqlDB.sequelize.transaction()
     try {
       const payload: Types.Classes.CProduct = Types.Classes.CProduct.fromObject(input)
       const role = BackendTypes.Roles.valueOf(identity.role)
@@ -160,7 +159,6 @@ export default class Products {
           productOptionsCategories
         },
         {
-          transaction,
           include: [
             {
               model: DBModels.ProductOptionsCategoryModel,
@@ -169,10 +167,8 @@ export default class Products {
           ]
         }
       )
-      await transaction.commit()
       return new Utils.Return(productModel !== null)
     } catch (exception: any) {
-      await transaction.rollback()
       let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
       if (exception instanceof Utils.iKomidaError) {
         error = exception
@@ -318,7 +314,7 @@ export default class Products {
               productOptionsCategoryModel.min = optionsCategory.min
               productOptionsCategoryModel.max = optionsCategory.max
               productOptionsCategoryModel.order = optionsCategory.order
-              productOptionsCategoryModel.save({ transaction })
+              await productOptionsCategoryModel.save({ transaction })
             } else {
               throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION)
             }
@@ -377,7 +373,7 @@ export default class Products {
                 productOptionModel.order = oldOption.order
                 productOptionModel.price = oldOption.price
                 productOptionModel.units = oldOption.units
-                productOptionModel.save({ transaction })
+                await productOptionModel.save({ transaction })
               } else {
                 throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION)
               }
