@@ -718,6 +718,7 @@ export default class Products {
                 productOptionsCategories,
                 undefined,
                 productModel.createdAt,
+                undefined,
                 productModel.id
               )
               if (
