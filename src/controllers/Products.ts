@@ -77,7 +77,7 @@ export default class Products {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_INVALID_CONTRACT)
       }
       const productsLimit = contractModel?.plan?.products ?? -1
-      if (productsLimit !== 0 && (contractModel?.products?.length ?? 0) >= productsLimit) {
+      if (productsLimit !== -1 && (contractModel?.products?.length ?? 0) >= productsLimit) {
         throw new Utils.iKomidaError(
           Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_LIMIT_EXCEEDED,
           productsLimit
@@ -599,6 +599,7 @@ export default class Products {
         productOptionsCategories,
         undefined,
         productModel?.createdAt,
+        undefined,
         productModel?.id
       )
       return new Utils.Return(true, product)
