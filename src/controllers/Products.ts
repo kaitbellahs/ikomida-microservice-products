@@ -152,7 +152,8 @@ export default class Products {
           price: Logics.Finances.toFinanceNumber(payload.price),
           discountType: payload.discountType,
           discount: Logics.Finances.toFinanceNumber(payload.discount),
-          weight: Logics.Finances.toFinanceNumber(payload.weight),
+          measure: Logics.Finances.toFinanceNumber(payload.measure),
+          measureUnit: payload.measureUnit,
           quantity: payload.quantity,
           image,
           productCategoryId: categoryModel.id,
@@ -264,9 +265,10 @@ export default class Products {
         productModel.discount = product?.discount
           ? Logics.Finances.toFinanceNumber(product?.discount) ?? undefined
           : productModel.discount
-        productModel.weight = product?.quantity
-          ? Logics.Finances.toFinanceNumber(product.weight) ?? undefined
-          : productModel.weight
+        productModel.measure = product?.measure
+          ? Logics.Finances.toFinanceNumber(product.measure) ?? undefined
+          : productModel.measure
+        productModel.measureUnit = product?.measureUnit ?? productModel.measureUnit
         productModel.quantity = Logics.Finances.toFinanceNumber(product?.quantity) ?? productModel.quantity
         productModel.image = await this.googleAdmin.uploadToStorage(
           identity,
@@ -593,7 +595,8 @@ export default class Products {
         productModel?.description,
         productModel?.order,
         productModel?.serves,
-        productModel?.weight,
+        productModel?.measure,
+        productModel?.measureUnit,
         productCategory,
         productModel?.image,
         productOptionsCategories,
@@ -713,7 +716,8 @@ export default class Products {
                 productModel.description,
                 productModel.order,
                 productModel.serves,
-                productModel.weight,
+                productModel.measure,
+                productModel.measureUnit,
                 undefined,
                 productModel.image,
                 productOptionsCategories,
