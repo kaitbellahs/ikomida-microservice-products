@@ -142,6 +142,7 @@ export default class Products {
         })
       )
       const image = await this.googleAdmin.uploadToStorage(identity, productId, 'image', 'product', payload.image)
+      const countProducts = await categoryModel.$count('products')
       const productModel: DBModels.ProductModel = await contractModel.$create(
         'product',
         {
@@ -157,7 +158,8 @@ export default class Products {
           quantity: payload.quantity,
           image,
           productCategoryId: categoryModel.id,
-          productOptionsCategories
+          productOptionsCategories,
+          order: countProducts
         },
         {
           include: [
@@ -179,9 +181,9 @@ export default class Products {
   }
 
   async editProduct(identity: Types.Classes.CUser, input: any) {
-    const transaction = await Domain.SqlDB.sequelize.transaction()
+    const transaction = await Domain.SqlDB.sequelize.transaction({ autocommit: false })
     try {
-      const payload: Types.Classes.CProduct = Types.Classes.CProduct.fromObject(input)
+      const payload: Types.Classes.CProduct | Types.Classes.CProduct[] = Types.Classes.CProduct.fromObject(input)
       const role = BackendTypes.Roles.valueOf(identity.role)
       const products = Array.isArray(payload) ? payload : [payload]
       for (const product of products) {
@@ -239,7 +241,7 @@ export default class Products {
           throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_PRODUCT_INVALID_PRODUCT)
         }
         const productModel = productModels?.[0]
-        const optionsCategories = payload.optionsCategories ?? []
+        const optionsCategories = product.optionsCategories ?? []
         const productOptionsLimit = Number(contractModel.plan?.productOptions ?? -1)
         if (
           productOptionsLimit !== -1 &&
@@ -275,7 +277,7 @@ export default class Products {
           product.id,
           'image',
           'product',
-          payload.image,
+          product.image,
           productModel.image
         )
         const producOptionsCategoryModelIds: (string | undefined)[] =
@@ -291,7 +293,8 @@ export default class Products {
             uuid,
             'image',
             'productOptionsCategory',
-            optionsCategory.image
+            optionsCategory.image,
+            productOptionsCategoryModel?.image
           )
           if (!producOptionsCategoryModelIds.includes(optionsCategory.id)) {
             productOptionsCategoryModel = await productModel.$create(
@@ -367,7 +370,8 @@ export default class Products {
                   productOptionModel.id,
                   'image',
                   'optionsCategory',
-                  oldOption.image
+                  oldOption.image,
+                  productOptionModel.image
                 )
                 productOptionModel.name = oldOption.name
                 productOptionModel.image = image
@@ -424,9 +428,11 @@ export default class Products {
       if (!contractModel) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_CATEGORY_INVALID_CONTRACT)
       }
+      const countCategories = await contractModel.$count('productCategories')
       await contractModel.$create('productCategory', {
         title: payload.title,
-        description: payload.description
+        description: payload.description,
+        order: countCategories
       })
       await transaction.commit()
       return new Utils.Return(true)
@@ -441,48 +447,55 @@ export default class Products {
   }
 
   async editCategory(identity: Types.Classes.CUser, input: any) {
-    const transaction = await Domain.SqlDB.sequelize.transaction()
+    const transaction = await Domain.SqlDB.sequelize.transaction({ autocommit: false })
     try {
-      const payload: Types.Classes.CProductCategory = Types.Classes.CProductCategory.fromObject(input)
+      const payload: Types.Classes.CCategoryProducts | Types.Classes.CCategoryProducts[] =
+        Types.Classes.CCategoryProducts.fromObject(input)
       const role = BackendTypes.Roles.valueOf(identity.role)
       if (role !== BackendTypes.Roles.VENDOR) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_CATEGORY_UNAUTHORIZED)
       }
-      const contractModel = await DBModels.ContractModel.findOne({
-        where: {
-          ikomidaID: identity.ikomidaID
-        },
-        include: [
-          {
-            model: DBModels.UserModel,
-            required: true,
-            where: {
-              id: identity.id,
-              role: {
-                [Domain.SqlDB.Op.in]: [BackendTypes.Roles.VENDOR]
+      const categories = Array.isArray(payload) ? payload : [payload]
+      for (const category of categories) {
+        const contractModel = await DBModels.ContractModel.findOne({
+          where: {
+            ikomidaID: identity.ikomidaID
+          },
+          include: [
+            {
+              model: DBModels.UserModel,
+              required: true,
+              where: {
+                id: identity.id,
+                role: {
+                  [Domain.SqlDB.Op.in]: [BackendTypes.Roles.VENDOR]
+                }
+              }
+            },
+            {
+              model: DBModels.ProductCategoryModel,
+              required: false,
+              where: {
+                id: category.id
               }
             }
-          },
-          {
-            model: DBModels.ProductCategoryModel,
-            required: false,
-            where: {
-              id: payload.id
-            }
-          }
-        ]
-      })
-      if (!contractModel) {
-        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_CATEGORY_INVALID_CONTRACT)
+          ]
+        })
+        if (!contractModel) {
+          throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_CATEGORY_INVALID_CONTRACT)
+        }
+        const productCategoryModels = contractModel?.productCategories
+        if (!productCategoryModels || (productCategoryModels?.length ?? 0) !== 1) {
+          throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_CATEGORY_INVALID_CATEGORY)
+        }
+        const productCategoryModel = productCategoryModels[0]
+        productCategoryModel.title = category.title ?? productCategoryModel.title
+        productCategoryModel.description = category.description ?? productCategoryModel.description
+        productCategoryModel.order = category.order ?? productCategoryModel.order
+        await productCategoryModel.save({
+          transaction
+        })
       }
-      const productCategoryModels = contractModel?.productCategories
-      if (!productCategoryModels || (productCategoryModels?.length ?? 0) !== 1) {
-        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_CATEGORY_INVALID_CATEGORY)
-      }
-      await productCategoryModels[0].update({
-        title: payload.title,
-        description: payload.description
-      })
       await transaction.commit()
       return new Utils.Return(true)
     } catch (exception: any) {
@@ -673,15 +686,33 @@ export default class Products {
       if (!contractModel) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
       }
+      const categoriesOrder: number[] = []
       const productsAndCategoriesModels = contractModel?.productCategories
       const productsAndCategories = await Promise.all(
         productsAndCategoriesModels?.map(async (productsAndCategoryModel, i: number) => {
-          productsAndCategoryModel.order = productsAndCategoryModel?.order ?? i
+          let categoryOrder = productsAndCategoryModel?.order ?? i
+          if (categoryOrder < 0) {
+            categoryOrder = 0
+          }
+          if (categoriesOrder.includes(categoryOrder)) {
+            categoryOrder = Math.max(...categoriesOrder) + 1
+          }
+          categoriesOrder.push(categoryOrder)
+          productsAndCategoryModel.order = categoryOrder
           await productsAndCategoryModel?.save()
+          const productsOrder: number[] = []
           const productModels = productsAndCategoryModel?.products ?? []
           const products = await Promise.all(
             productModels.map(async (productModel: DBModels.ProductModel, j: number) => {
-              productModel.order = productModel?.order ?? j
+              let productOrder = productModel?.order ?? j
+              if (productOrder < 0) {
+                productOrder = 0
+              }
+              if (productsOrder.includes(productOrder)) {
+                productOrder = Math.max(...productsOrder) + 1
+              }
+              productsOrder.push(productOrder)
+              productModel.order = productOrder
               await productModel?.save()
               const productOptionsCategories = productModel?.productOptionsCategories?.map(productOptionsCategory => {
                 const options =
