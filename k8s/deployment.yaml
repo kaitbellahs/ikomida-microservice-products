@@ -2,18 +2,18 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: products
-  name: products-microservice
+    app: $NAME
+  name: $NAME-$TYPE
   namespace: ikomida
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: products
+      app: $NAME
   template:
     metadata:
       labels:
-        app: products
+        app: $NAME
     spec:
       securityContext:
         runAsUser: 1000
@@ -21,8 +21,8 @@ spec:
         fsGroup: 2000
         runAsNonRoot: true
       containers:
-        - image: us-central1-docker.pkg.dev/$PROJECT_ID/docker/products-microservice-image:latest
-          name: products-microservice
+        - image: $GCLOUD_LOCATION-docker.pkg.dev/$PROJECT_ID/docker/$NAME-$TYPE-image:$PACKAGE_VERSION
+          name: $NAME-$TYPE
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
