@@ -1,13 +1,13 @@
 apiVersion: autoscaling.gke.io/v1beta1
 kind: MultidimPodAutoscaler
 metadata:
-  name: products-autoscaler
+  name: $NAME-autoscaler
   namespace: ikomida
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: products-microservice
+    name: $NAME-$TYPE
   goals:
     metrics:
       - type: Resource
