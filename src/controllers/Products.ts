@@ -1,5 +1,5 @@
 import { Domain, Utils, BackendTypes, Types, Logics, DBModels } from '@ikomida/shared-backend'
-import { IiKomidaErrorModel } from '@ikomida/shared-backend/lib/Utils/iKomidaError.js'
+import { IiKomidaErrorModel } from '@ikomida/shared-backend/lib/src/Utils/iKomidaError.js'
 import { v4 as uuidv4 } from 'uuid'
 
 export default class Products {
