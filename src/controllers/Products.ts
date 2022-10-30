@@ -432,6 +432,8 @@ export default class Products {
       await contractModel.$create('productCategory', {
         title: payload.title,
         description: payload.description,
+        businessHours: payload.business?.hours,
+        businessDays: payload.business?.days,
         order: countCategories
       })
       await transaction.commit()
@@ -489,12 +491,18 @@ export default class Products {
           throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_CATEGORY_INVALID_CATEGORY)
         }
         const productCategoryModel = productCategoryModels[0]
-        productCategoryModel.title = category.title ?? productCategoryModel.title
-        productCategoryModel.description = category.description ?? productCategoryModel.description
-        productCategoryModel.order = category.order ?? productCategoryModel.order
-        await productCategoryModel.save({
-          transaction
-        })
+        await productCategoryModel.update(
+          {
+            title: category.title ?? productCategoryModel.title,
+            description: category.description ?? productCategoryModel.description,
+            order: category.order ?? productCategoryModel.order,
+            businessHours: category.business?.hours ?? productCategoryModel.businessHours,
+            businessDays: category.business?.days ?? productCategoryModel.businessDays
+          },
+          {
+            transaction
+          }
+        )
       }
       await transaction.commit()
       return new Utils.Return(true)
@@ -595,6 +603,7 @@ export default class Products {
       })
       const productCategory = Types.Classes.CProductCategory.init(
         productModel?.productCategory.title ?? '',
+        undefined,
         undefined,
         undefined,
         productModel?.productCategory.id
@@ -765,6 +774,7 @@ export default class Products {
                   '',
                   undefined,
                   undefined,
+                  undefined,
                   productModel.productCategoryId
                 )
               }
@@ -772,11 +782,15 @@ export default class Products {
             }) || []
           )
           const productsAndCategory = Types.Classes.CCategoryProducts.init(
-            productsAndCategoryModel?.title ?? '-',
-            productsAndCategoryModel?.order,
-            productsAndCategoryModel?.description,
-            productsAndCategoryModel?.createdAt,
-            products
+            productsAndCategoryModel.title ?? '-',
+            productsAndCategoryModel.order,
+            productsAndCategoryModel.description,
+            productsAndCategoryModel.createdAt,
+            products,
+            Types.Classes.CBusinessTime.fromObject({
+              hours: productsAndCategoryModel.businessHours,
+              days: productsAndCategoryModel.businessDays
+            })
           )
           if (role && [BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF, BackendTypes.Roles.ADMIN].includes(role)) {
             productsAndCategory.id = productsAndCategoryModel?.id
@@ -867,6 +881,10 @@ export default class Products {
           categoryModel?.title ?? '-',
           undefined,
           categoryModel?.description,
+          Types.Classes.CBusinessTime.fromObject({
+            hours: categoryModel.businessHours,
+            days: categoryModel.businessDays
+          }),
           categoryModel?.id
         )
       })
