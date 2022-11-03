@@ -1,6 +1,6 @@
 {
   "name": "ikomida-products-service",
-  "version": "1.3.6",
+  "version": "1.3.7",
   "description": "ikomida products service",
   "private": true,
   "module": "build/service.js",
@@ -27,7 +27,7 @@
   "author": "Khalid Ait Bellahs",
   "license": "UNLICENSED",
   "dependencies": {
-    "@ikomida/shared-backend": "^1.3.13",
+    "@ikomida/shared-backend": "^1.3.17",
     "body-parser": "^1.20.1",
     "cors": "^2.8.5",
     "express": "^4.18.2",
@@ -64,7 +64,7 @@
     "rollup-plugin-auto-external": "^2.0.0",
     "rollup-plugin-terser": "^7.0.2",
     "tslib": "^2.4.1",
-    "typedoc": "^0.23.19",
+    "typedoc": "^0.23.20",
     "typescript": "^4.8.4"
   }
 }
