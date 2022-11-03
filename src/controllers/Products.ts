@@ -496,10 +496,10 @@ export default class Products {
         await productCategoryModel.update(
           {
             title: category.title ?? productCategoryModel.title,
-            description: category.description ?? productCategoryModel.description,
+            description: category.description,
             order: category.order ?? productCategoryModel.order,
-            businessHours: category.business?.hours ?? productCategoryModel.businessHours,
-            businessDays: category.business?.days ?? productCategoryModel.businessDays
+            businessHours: category.business?.hours,
+            businessDays: category.business?.days
           },
           {
             transaction
@@ -676,10 +676,11 @@ export default class Products {
           { model: DBModels.PlanModel, required: true },
           {
             model: DBModels.ProductCategoryModel,
-            required: false,
+            required: role === BackendTypes.Roles.CLIENT,
             include: [
               {
                 model: DBModels.ProductModel,
+                required: false,
                 where,
                 include: [
                   {
@@ -718,7 +719,7 @@ export default class Products {
             categoryOrder = 0
           }
           if (categoriesOrder.includes(categoryOrder)) {
-            categoryOrder = Math.max(...categoriesOrder) + 1
+            categoryOrder += Math.max(...categoriesOrder)
           }
           categoriesOrder.push(categoryOrder)
           productsAndCategoryModel.order = categoryOrder
