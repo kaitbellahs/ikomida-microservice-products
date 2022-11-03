@@ -19,7 +19,10 @@ Utils.System.setExpressResponse(app)
 const port = process?.env?.PORT || 80
 
 app.get('/products', async (req, res) => {
-  const payload = await products.getProducts(Types.Classes.CUser.fromObject(req.headers?.identity))
+  const payload = await products.getProducts(
+    Types.Classes.CUser.fromObject(req.headers?.identity),
+    req.query as Types.Interfaces.IMetadata
+  )
   res.sendResponse(payload)
 })
 
@@ -47,6 +50,12 @@ app.delete('/product/:id', async (req, res) => {
   } else {
     res.status(403)
   }
+})
+
+app.patch('/product/:id', async (req, res) => {
+  const identity: Types.Classes.CUser = Types.Classes.CUser.fromObject(req.headers?.identity)
+  const payload = await products.activateProduct(identity, req.params.id)
+  res.status(payload?.success ? 201 : 200).sendResponse(payload)
 })
 
 app.delete('/category/:id', async (req, res) => {
