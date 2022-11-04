@@ -157,6 +157,7 @@ export default class Products {
           measureUnit: payload.measureUnit,
           quantity: payload.quantity,
           image,
+          orderTypes: payload.orderTypes,
           productCategoryId: categoryModel.id,
           productOptionsCategories,
           order: countProducts
@@ -264,6 +265,7 @@ export default class Products {
         productModel.serves = Logics.Finances.toFinanceNumber(product?.serves) ?? productModel.serves
         productModel.price = Logics.Finances.toFinanceNumber(product.price) ?? productModel.price
         productModel.discountType = product?.discountType ?? productModel.discountType
+        productModel.orderTypes = product?.orderTypes ?? productModel.orderTypes
         productModel.discount = product?.discount
           ? Logics.Finances.toFinanceNumber(product?.discount) ?? undefined
           : productModel.discount
@@ -494,10 +496,10 @@ export default class Products {
         await productCategoryModel.update(
           {
             title: category.title ?? productCategoryModel.title,
-            description: category.description ?? productCategoryModel.description,
+            description: category.description,
             order: category.order ?? productCategoryModel.order,
-            businessHours: category.business?.hours ?? productCategoryModel.businessHours,
-            businessDays: category.business?.days ?? productCategoryModel.businessDays
+            businessHours: category.business?.hours,
+            businessDays: category.business?.days
           },
           {
             transaction
@@ -625,6 +627,8 @@ export default class Products {
         undefined,
         productModel?.createdAt,
         undefined,
+        productModel?.active,
+        productModel?.orderTypes,
         productModel?.id
       )
       return new Utils.Return(true, product)
@@ -637,8 +641,17 @@ export default class Products {
     }
   }
 
-  async getProducts(identity: Types.Classes.CUser) {
+  async getProducts(identity: Types.Classes.CUser, query?: Types.Interfaces.IMetadata) {
     try {
+      let where = {}
+      const orderType = Types.Types.TOrderType.valueOf(query?.orderType ?? '')
+      if (orderType) {
+        where = Domain.SqlDB.fn(
+          'JSON_CONTAINS',
+          Domain.SqlDB.Column('orderTypes'),
+          Domain.SqlDB.cast(`"${orderType.id}"`, 'CHAR CHARACTER SET utf8')
+        )
+      }
       const role = BackendTypes.Roles.valueOf(identity.role)
       const contractModel = await DBModels.ContractModel.findOne({
         where: {
@@ -663,10 +676,12 @@ export default class Products {
           { model: DBModels.PlanModel, required: true },
           {
             model: DBModels.ProductCategoryModel,
-            required: false,
+            required: role === BackendTypes.Roles.CLIENT,
             include: [
               {
                 model: DBModels.ProductModel,
+                required: false,
+                where,
                 include: [
                   {
                     model: DBModels.ProductOptionsCategoryModel,
@@ -704,7 +719,7 @@ export default class Products {
             categoryOrder = 0
           }
           if (categoriesOrder.includes(categoryOrder)) {
-            categoryOrder = Math.max(...categoriesOrder) + 1
+            categoryOrder += Math.max(...categoriesOrder)
           }
           categoriesOrder.push(categoryOrder)
           productsAndCategoryModel.order = categoryOrder
@@ -764,6 +779,8 @@ export default class Products {
                 undefined,
                 productModel.createdAt,
                 undefined,
+                productModel.active,
+                productModel.orderTypes,
                 productModel.id
               )
               if (
@@ -1176,6 +1193,31 @@ export default class Products {
       if (exception instanceof Utils.iKomidaError) {
         error = exception
       }
+      return error.logAndReturn(this.logger)
+    }
+  }
+
+  async activateProduct(identity: Types.Classes.CUser, id?: string) {
+    try {
+      if (!Logics.Validations.validateUUID(id)) {
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_PRODUCT_MISSING_DATA)
+      }
+      const roductModel = await DBModels.ProductModel.findOne({
+        where: {
+          id
+        }
+      })
+      if (roductModel) {
+        roductModel.active = !roductModel?.active
+        roductModel?.save()
+        return new Utils.Return(true)
+      }
+      return new Utils.Return(false)
+    } catch (exception: any) {
+      const error = new Utils.iKomidaError(
+        Utils.iKomidaError.IKOMIDA_ADMIN_SERVICE_ACTIVE_SETTING_EXCEPTION,
+        exception?.message
+      )
       return error.logAndReturn(this.logger)
     }
   }
