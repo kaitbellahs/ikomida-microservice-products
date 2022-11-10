@@ -19,15 +19,32 @@ Utils.System.setExpressResponse(app)
 const port = process?.env?.PORT || 80
 
 app.get('/products', async (req, res) => {
-  const payload = await products.getProducts(
-    Types.Classes.CUser.fromObject(req.headers?.identity),
-    req.query as Types.Interfaces.IMetadata
-  )
+  const identity: Types.Classes.CUser = req.headers?.identity
+    ? Types.Classes.CUser.fromObject(req.headers?.identity)
+    : Types.Classes.CUser.fillWith(undefined)
+  if (!req.headers?.identity) {
+    const ikomidaId = req.headers?.['x-ikomida-id']
+    identity.ikomidaID = typeof ikomidaId === 'string' ? ikomidaId : ''
+  }
+  const payload = await products.getProducts(identity, req.query as Types.Interfaces.IMetadata)
+  res.sendResponse(payload)
+})
+
+app.get('/lowQuantityProducts', async (req, res) => {
+  const identity: Types.Classes.CUser = Types.Classes.CUser.fromObject(req.headers?.identity)
+  const payload = await products.getLowQuantityProducts(identity)
   res.sendResponse(payload)
 })
 
 app.get('/product/:id', async (req, res) => {
-  const payload = await products.getProduct(Types.Classes.CUser.fromObject(req.headers?.identity), req?.params?.id)
+  const identity: Types.Classes.CUser = req.headers?.identity
+    ? Types.Classes.CUser.fromObject(req.headers?.identity)
+    : Types.Classes.CUser.fillWith(undefined)
+  if (!req.headers?.identity) {
+    const ikomidaId = req.headers?.['x-ikomida-id']
+    identity.ikomidaID = typeof ikomidaId === 'string' ? ikomidaId : ''
+  }
+  const payload = await products.getProduct(identity, req?.params?.id)
   res.sendResponse(payload)
 })
 
