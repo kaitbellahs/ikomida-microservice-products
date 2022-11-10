@@ -1,5 +1,6 @@
 import { Domain, Utils, BackendTypes, Types, Logics, DBModels } from '@ikomida/shared-backend'
 import { IiKomidaErrorModel } from '@ikomida/shared-backend/lib/src/Utils/iKomidaError.js'
+import { Includeable } from 'sequelize'
 import { v4 as uuidv4 } from 'uuid'
 
 export default class Products {
@@ -156,6 +157,8 @@ export default class Products {
           measure: Logics.Finances.toFinanceNumber(payload.measure),
           measureUnit: payload.measureUnit,
           quantity: payload.quantity,
+          maxQuantityPerOrder: payload.maxQuantityPerOrder,
+          totalQuantity: payload.quantity,
           image,
           orderTypes: payload.orderTypes,
           productCategoryId: categoryModel.id,
@@ -274,6 +277,11 @@ export default class Products {
           : productModel.measure
         productModel.measureUnit = product?.measureUnit ?? productModel.measureUnit
         productModel.quantity = Logics.Finances.toFinanceNumber(product?.quantity) ?? productModel.quantity
+        productModel.totalQuantity =
+          (productModel.totalQuantity ?? 0) +
+          ((Logics.Finances.toFinanceNumber(product?.quantity) ?? 0) - (productModel.quantity ?? 0))
+        productModel.maxQuantityPerOrder =
+          Logics.Finances.toFinanceNumber(product?.maxQuantityPerOrder) ?? productModel.maxQuantityPerOrder
         productModel.image = await this.googleAdmin.uploadToStorage(
           identity,
           product.id,
@@ -518,56 +526,62 @@ export default class Products {
     }
   }
 
-  async getProduct(identity: Types.Classes.CUser, id?: string) {
+  async getProduct(identity?: Types.Classes.CUser, id?: string) {
     try {
+      if (!identity?.ikomidaID) {
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
+      }
       if (!Logics.Validations.validateUUID(id)) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCT_MISSING_DATA)
       }
+      const include: Includeable[] = [
+        { model: DBModels.PlanModel, required: true },
+        {
+          model: DBModels.ProductModel,
+          where: {
+            id
+          },
+          required: false,
+          include: [
+            {
+              model: DBModels.ProductCategoryModel,
+              required: false
+            },
+            {
+              model: DBModels.ProductOptionsCategoryModel,
+              required: false,
+              include: [
+                {
+                  model: DBModels.ProductOptionModel,
+                  required: false
+                }
+              ]
+            }
+          ]
+        }
+      ]
+      if (identity?.id) {
+        include.push({
+          model: DBModels.UserModel,
+          required: true,
+          where: {
+            id: identity.id,
+            role: {
+              [Domain.SqlDB.Op.in]: [
+                BackendTypes.Roles.VENDOR,
+                BackendTypes.Roles.STAFF,
+                BackendTypes.Roles.CLIENT,
+                BackendTypes.Roles.ADMIN
+              ]
+            }
+          }
+        })
+      }
       const contractModel = await DBModels.ContractModel.findOne({
         where: {
-          ikomidaID: identity.ikomidaID
+          ikomidaID: identity?.ikomidaID
         },
-        include: [
-          {
-            model: DBModels.UserModel,
-            required: true,
-            where: {
-              id: identity.id,
-              role: {
-                [Domain.SqlDB.Op.in]: [
-                  BackendTypes.Roles.VENDOR,
-                  BackendTypes.Roles.STAFF,
-                  BackendTypes.Roles.CLIENT,
-                  BackendTypes.Roles.ADMIN
-                ]
-              }
-            }
-          },
-          { model: DBModels.PlanModel, required: true },
-          {
-            model: DBModels.ProductModel,
-            where: {
-              id
-            },
-            required: false,
-            include: [
-              {
-                model: DBModels.ProductCategoryModel,
-                required: false
-              },
-              {
-                model: DBModels.ProductOptionsCategoryModel,
-                required: false,
-                include: [
-                  {
-                    model: DBModels.ProductOptionModel,
-                    required: false
-                  }
-                ]
-              }
-            ]
-          }
-        ]
+        include
       })
       if (!contractModel) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
@@ -629,6 +643,8 @@ export default class Products {
         undefined,
         productModel?.active,
         productModel?.orderTypes,
+        productModel.totalQuantity,
+        productModel.maxQuantityPerOrder,
         productModel?.id
       )
       return new Utils.Return(true, product)
@@ -641,8 +657,11 @@ export default class Products {
     }
   }
 
-  async getProducts(identity: Types.Classes.CUser, query?: Types.Interfaces.IMetadata) {
+  async getProducts(identity?: Types.Classes.CUser, query?: Types.Interfaces.IMetadata) {
     try {
+      if (!identity?.ikomidaID) {
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
+      }
       let where = {}
       const orderType = Types.Types.TOrderType.valueOf(query?.orderType ?? '')
       if (orderType) {
@@ -652,60 +671,63 @@ export default class Products {
           Domain.SqlDB.cast(`"${orderType.id}"`, 'CHAR CHARACTER SET utf8')
         )
       }
-      const role = BackendTypes.Roles.valueOf(identity.role)
+      const role = BackendTypes.Roles.valueOf(identity?.role ?? '')
+      const include: Includeable[] = [
+        { model: DBModels.PlanModel, required: true },
+        {
+          model: DBModels.ProductCategoryModel,
+          required: role === BackendTypes.Roles.CLIENT,
+          include: [
+            {
+              model: DBModels.ProductModel,
+              required: false,
+              where,
+              include: [
+                {
+                  model: DBModels.ProductOptionsCategoryModel,
+                  required: false,
+                  include: [
+                    {
+                      model: DBModels.ProductOptionModel,
+                      required: false
+                    }
+                  ]
+                }
+              ],
+              order: [
+                ['order', 'ASC'],
+                ['title', 'ASC']
+              ]
+            }
+          ],
+          order: [
+            ['order', 'ASC'],
+            ['title', 'ASC']
+          ]
+        }
+      ]
+      if (identity?.id) {
+        include.push({
+          model: DBModels.UserModel,
+          required: true,
+          where: {
+            id: identity.id,
+            role: {
+              [Domain.SqlDB.Op.in]: [
+                BackendTypes.Roles.VENDOR,
+                BackendTypes.Roles.STAFF,
+                BackendTypes.Roles.CLIENT,
+                BackendTypes.Roles.ADMIN
+              ]
+            }
+          }
+        })
+      }
       const contractModel = await DBModels.ContractModel.findOne({
         where: {
-          ikomidaID: identity.ikomidaID
+          ikomidaID: identity?.ikomidaID
         },
-        include: [
-          {
-            model: DBModels.UserModel,
-            required: true,
-            where: {
-              id: identity.id,
-              role: {
-                [Domain.SqlDB.Op.in]: [
-                  BackendTypes.Roles.VENDOR,
-                  BackendTypes.Roles.STAFF,
-                  BackendTypes.Roles.CLIENT,
-                  BackendTypes.Roles.ADMIN
-                ]
-              }
-            }
-          },
-          { model: DBModels.PlanModel, required: true },
-          {
-            model: DBModels.ProductCategoryModel,
-            required: role === BackendTypes.Roles.CLIENT,
-            include: [
-              {
-                model: DBModels.ProductModel,
-                required: false,
-                where,
-                include: [
-                  {
-                    model: DBModels.ProductOptionsCategoryModel,
-                    required: false,
-                    include: [
-                      {
-                        model: DBModels.ProductOptionModel,
-                        required: false
-                      }
-                    ]
-                  }
-                ],
-                order: [
-                  ['order', 'ASC'],
-                  ['title', 'ASC']
-                ]
-              }
-            ],
-            order: [
-              ['order', 'ASC'],
-              ['title', 'ASC']
-            ]
-          }
-        ]
+        include
       })
       if (!contractModel) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
@@ -781,12 +803,15 @@ export default class Products {
                 undefined,
                 productModel.active,
                 productModel.orderTypes,
+                undefined,
+                productModel.maxQuantityPerOrder,
                 productModel.id
               )
               if (
                 role &&
                 [BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF, BackendTypes.Roles.ADMIN].includes(role)
               ) {
+                product.totalQuantity = productModel.totalQuantity
                 product.category = Types.Classes.CProductCategory.init(
                   '',
                   undefined,
@@ -816,6 +841,105 @@ export default class Products {
         }) || []
       )
       return new Utils.Return(true, productsAndCategories)
+    } catch (exception: any) {
+      let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
+      if (exception instanceof Utils.iKomidaError) {
+        error = exception
+      }
+      return error.logAndReturn(this.logger)
+    }
+  }
+
+  async getLowQuantityProducts(identity?: Types.Classes.CUser) {
+    try {
+      if (!identity?.ikomidaID) {
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
+      }
+      const role = BackendTypes.Roles.valueOf(identity?.role ?? '')
+      const include: Includeable[] = [
+        { model: DBModels.PlanModel, required: true },
+        {
+          model: DBModels.ProductModel,
+          required: false,
+          where: {
+            quantity: {
+              [Domain.SqlDB.Op.lte]: 10
+            }
+          },
+          order: [
+            ['quantity', 'ASC'],
+            ['order', 'ASC'],
+            ['title', 'ASC']
+          ]
+        },
+        {
+          model: DBModels.UserModel,
+          required: true,
+          where: {
+            id: identity.id,
+            role: {
+              [Domain.SqlDB.Op.in]: [
+                BackendTypes.Roles.VENDOR,
+                BackendTypes.Roles.STAFF,
+                BackendTypes.Roles.CLIENT,
+                BackendTypes.Roles.ADMIN
+              ]
+            }
+          }
+        }
+      ]
+      const contractModel = await DBModels.ContractModel.findOne({
+        where: {
+          ikomidaID: identity?.ikomidaID
+        },
+        include
+      })
+      if (!contractModel) {
+        throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
+      }
+      const productModels = contractModel?.products ?? []
+      const products =
+        (await Promise.all(
+          productModels.map(async (productModel: DBModels.ProductModel) => {
+            const product = Types.Classes.CProduct.init(
+              productModel.title ?? '-',
+              productModel.price ?? 0,
+              productModel.discount ?? 0,
+              productModel.discountType ?? Types.Types.TDiscount.NO,
+              productModel.quantity ?? 0,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              productModel.image,
+              undefined,
+              undefined,
+              productModel.createdAt,
+              undefined,
+              undefined,
+              productModel.orderTypes,
+              productModel.totalQuantity,
+              undefined,
+              productModel.id
+            )
+            if (
+              role &&
+              [BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF, BackendTypes.Roles.ADMIN].includes(role)
+            ) {
+              product.category = Types.Classes.CProductCategory.init(
+                '',
+                undefined,
+                undefined,
+                undefined,
+                productModel.productCategoryId
+              )
+            }
+            return product
+          }) || []
+        )) || []
+      return new Utils.Return(true, products)
     } catch (exception: any) {
       let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
       if (exception instanceof Utils.iKomidaError) {
