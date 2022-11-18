@@ -44,8 +44,8 @@ export default class Products {
   async newProduct(identity: Types.Classes.CUser, input: any) {
     try {
       const payload: Types.Classes.CProduct = Types.Classes.CProduct.fromObject(input)
-      const role = BackendTypes.Roles.valueOf(identity.role)
-      if (!role || ![BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF].includes(role) || !payload.category?.id) {
+      const role = identity.role
+      if (!role || ![Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF].includes(role) || !payload.category?.id) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_UNAUTHORIZED)
       }
       const contractModel = await DBModels.ContractModel.findOne({
@@ -59,7 +59,7 @@ export default class Products {
             where: {
               id: identity.id,
               role: {
-                [Domain.SqlDB.Op.in]: [BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF]
+                [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF]
               }
             }
           },
@@ -188,10 +188,10 @@ export default class Products {
     const transaction = await Domain.SqlDB.sequelize.transaction({ autocommit: false })
     try {
       const payload: Types.Classes.CProduct | Types.Classes.CProduct[] = Types.Classes.CProduct.fromObject(input)
-      const role = BackendTypes.Roles.valueOf(identity.role)
+      const role = identity.role
       const products = Array.isArray(payload) ? payload : [payload]
       for (const product of products) {
-        if (role !== BackendTypes.Roles.VENDOR || !product?.id) {
+        if (role !== Types.Types.TRoles.VENDOR || !product?.id) {
           throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_PRODUCT_UNAUTHORIZED)
         }
         const include: Domain.SqlDB.Includeable[] = [
@@ -202,7 +202,7 @@ export default class Products {
             where: {
               id: identity.id,
               role: {
-                [Domain.SqlDB.Op.in]: [BackendTypes.Roles.VENDOR]
+                [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR]
               }
             }
           },
@@ -414,8 +414,8 @@ export default class Products {
     const transaction = await Domain.SqlDB.sequelize.transaction()
     try {
       const payload: Types.Classes.CProductCategory = Types.Classes.CProductCategory.fromObject(input)
-      const role = BackendTypes.Roles.valueOf(identity.role)
-      if (!role || ![BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF].includes(role)) {
+      const role = identity.role
+      if (!role || ![Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF].includes(role)) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_CATEGORY_UNAUTHORIZED)
       }
       const contractModel = await DBModels.ContractModel.findOne({
@@ -429,7 +429,7 @@ export default class Products {
             where: {
               id: identity.id,
               role: {
-                [Domain.SqlDB.Op.in]: [BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF]
+                [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF]
               }
             }
           }
@@ -463,8 +463,8 @@ export default class Products {
     try {
       const payload: Types.Classes.CCategoryProducts | Types.Classes.CCategoryProducts[] =
         Types.Classes.CCategoryProducts.fromObject(input)
-      const role = BackendTypes.Roles.valueOf(identity.role)
-      if (role !== BackendTypes.Roles.VENDOR) {
+      const role = identity.role
+      if (role !== Types.Types.TRoles.VENDOR) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_EDIT_CATEGORY_UNAUTHORIZED)
       }
       const categories = Array.isArray(payload) ? payload : [payload]
@@ -480,7 +480,7 @@ export default class Products {
               where: {
                 id: identity.id,
                 role: {
-                  [Domain.SqlDB.Op.in]: [BackendTypes.Roles.VENDOR]
+                  [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR]
                 }
               }
             },
@@ -568,10 +568,10 @@ export default class Products {
             id: identity.id,
             role: {
               [Domain.SqlDB.Op.in]: [
-                BackendTypes.Roles.VENDOR,
-                BackendTypes.Roles.STAFF,
-                BackendTypes.Roles.CLIENT,
-                BackendTypes.Roles.ADMIN
+                Types.Types.TRoles.VENDOR,
+                Types.Types.TRoles.STAFF,
+                Types.Types.TRoles.CLIENT,
+                Types.Types.TRoles.ADMIN
               ]
             }
           }
@@ -671,12 +671,12 @@ export default class Products {
           Domain.SqlDB.cast(`"${orderType.id}"`, 'CHAR CHARACTER SET utf8')
         )
       }
-      const role = BackendTypes.Roles.valueOf(identity?.role ?? '')
+      const role = identity?.role
       const include: Includeable[] = [
         { model: DBModels.PlanModel, required: true },
         {
           model: DBModels.ProductCategoryModel,
-          required: role === BackendTypes.Roles.CLIENT,
+          required: role === Types.Types.TRoles.CLIENT,
           include: [
             {
               model: DBModels.ProductModel,
@@ -714,10 +714,10 @@ export default class Products {
             id: identity.id,
             role: {
               [Domain.SqlDB.Op.in]: [
-                BackendTypes.Roles.VENDOR,
-                BackendTypes.Roles.STAFF,
-                BackendTypes.Roles.CLIENT,
-                BackendTypes.Roles.ADMIN
+                Types.Types.TRoles.VENDOR,
+                Types.Types.TRoles.STAFF,
+                Types.Types.TRoles.CLIENT,
+                Types.Types.TRoles.ADMIN
               ]
             }
           }
@@ -809,7 +809,7 @@ export default class Products {
               )
               if (
                 role &&
-                [BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF, BackendTypes.Roles.ADMIN].includes(role)
+                Types.Types.TRoles.isVendor(role)
               ) {
                 product.totalQuantity = productModel.totalQuantity
                 product.category = Types.Classes.CProductCategory.init(
@@ -834,7 +834,7 @@ export default class Products {
               days: productsAndCategoryModel.businessDays
             })
           )
-          if (role && [BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF, BackendTypes.Roles.ADMIN].includes(role)) {
+          if (role && Types.Types.TRoles.isVendor(role)) {
             productsAndCategory.id = productsAndCategoryModel?.id
           }
           return productsAndCategory
@@ -855,7 +855,7 @@ export default class Products {
       if (!identity?.ikomidaID) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
       }
-      const role = BackendTypes.Roles.valueOf(identity?.role ?? '')
+      const role = identity?.role
       const include: Includeable[] = [
         { model: DBModels.PlanModel, required: true },
         {
@@ -879,10 +879,10 @@ export default class Products {
             id: identity.id,
             role: {
               [Domain.SqlDB.Op.in]: [
-                BackendTypes.Roles.VENDOR,
-                BackendTypes.Roles.STAFF,
-                BackendTypes.Roles.CLIENT,
-                BackendTypes.Roles.ADMIN
+                Types.Types.TRoles.VENDOR,
+                Types.Types.TRoles.STAFF,
+                Types.Types.TRoles.CLIENT,
+                Types.Types.TRoles.ADMIN
               ]
             }
           }
@@ -926,7 +926,7 @@ export default class Products {
             )
             if (
               role &&
-              [BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF, BackendTypes.Roles.ADMIN].includes(role)
+              Types.Types.TRoles.isVendor(role)
             ) {
               product.category = Types.Classes.CProductCategory.init(
                 '',
@@ -951,8 +951,8 @@ export default class Products {
 
   async getProductsCount(identity: Types.Classes.CUser) {
     try {
-      const role = BackendTypes.Roles.valueOf(identity.role)
-      if (!role || ![BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF].includes(role)) {
+      const role = identity.role
+      if (!role || ![Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF].includes(role)) {
         return new Utils.Return(true, 0)
       }
       const contractModel = await DBModels.ContractModel.findOne({
@@ -966,7 +966,7 @@ export default class Products {
             where: {
               id: identity.id,
               role: {
-                [Domain.SqlDB.Op.in]: [BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF, BackendTypes.Roles.ADMIN]
+                [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF, Types.Types.TRoles.ADMIN]
               }
             }
           },
@@ -1001,7 +1001,7 @@ export default class Products {
             where: {
               id: identity.id,
               role: {
-                [Domain.SqlDB.Op.in]: [BackendTypes.Roles.VENDOR, BackendTypes.Roles.STAFF, BackendTypes.Roles.ADMIN]
+                [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF, Types.Types.TRoles.ADMIN]
               }
             }
           },
@@ -1045,8 +1045,8 @@ export default class Products {
       if (!Logics.Validations.validateUUID(id)) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_PRODUCT_MISSING_DATA)
       }
-      const role = BackendTypes.Roles.valueOf(identity.role)
-      if (role !== BackendTypes.Roles.VENDOR) {
+      const role = identity.role
+      if (role !== Types.Types.TRoles.VENDOR) {
         return new Utils.Return(false)
       }
       const contractModel = await DBModels.ContractModel.findOne({
@@ -1060,7 +1060,7 @@ export default class Products {
             where: {
               id: identity.id,
               role: {
-                [Domain.SqlDB.Op.in]: [BackendTypes.Roles.VENDOR, BackendTypes.Roles.ADMIN]
+                [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.ADMIN]
               }
             }
           },
@@ -1115,8 +1115,8 @@ export default class Products {
       if (!Logics.Validations.validateUUID(id)) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORY_MISSING_DATA)
       }
-      const role = BackendTypes.Roles.valueOf(identity.role)
-      if (role !== BackendTypes.Roles.VENDOR) {
+      const role = identity.role
+      if (role !== Types.Types.TRoles.VENDOR) {
         return new Utils.Return(false)
       }
       const contractModel = await DBModels.ContractModel.findOne({
@@ -1130,7 +1130,7 @@ export default class Products {
             where: {
               id: identity.id,
               role: {
-                [Domain.SqlDB.Op.in]: [BackendTypes.Roles.VENDOR, BackendTypes.Roles.ADMIN]
+                [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.ADMIN]
               }
             }
           },
@@ -1208,8 +1208,8 @@ export default class Products {
       if (!Logics.Validations.validateUUID(id)) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_PRODUCT_MISSING_DATA)
       }
-      const role = BackendTypes.Roles.valueOf(identity.role)
-      if (role !== BackendTypes.Roles.VENDOR) {
+      const role = identity.role
+      if (role !== Types.Types.TRoles.VENDOR) {
         return new Utils.Return(false)
       }
       const contractModel = await DBModels.ContractModel.findOne({
@@ -1223,7 +1223,7 @@ export default class Products {
             where: {
               id: identity.id,
               role: {
-                [Domain.SqlDB.Op.in]: [BackendTypes.Roles.VENDOR, BackendTypes.Roles.ADMIN]
+                [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.ADMIN]
               }
             }
           },
@@ -1264,8 +1264,8 @@ export default class Products {
       if (!Logics.Validations.validateUUID(id)) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORY_MISSING_DATA)
       }
-      const role = BackendTypes.Roles.valueOf(identity.role)
-      if (role !== BackendTypes.Roles.VENDOR) {
+      const role = identity.role
+      if (role !== Types.Types.TRoles.VENDOR) {
         return new Utils.Return(false)
       }
       const contractModel = await DBModels.ContractModel.findOne({
@@ -1279,7 +1279,7 @@ export default class Products {
             where: {
               id: identity.id,
               role: {
-                [Domain.SqlDB.Op.in]: [BackendTypes.Roles.VENDOR, BackendTypes.Roles.ADMIN]
+                [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.ADMIN]
               }
             }
           },
