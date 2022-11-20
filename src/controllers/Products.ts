@@ -807,10 +807,7 @@ export default class Products {
                 productModel.maxQuantityPerOrder,
                 productModel.id
               )
-              if (
-                role &&
-                Types.Types.TRoles.isVendor(role)
-              ) {
+              if (role && Types.Types.TRoles.isVendor(role)) {
                 product.totalQuantity = productModel.totalQuantity
                 product.category = Types.Classes.CProductCategory.init(
                   '',
@@ -924,10 +921,7 @@ export default class Products {
               undefined,
               productModel.id
             )
-            if (
-              role &&
-              Types.Types.TRoles.isVendor(role)
-            ) {
+            if (role && Types.Types.TRoles.isVendor(role)) {
               product.category = Types.Classes.CProductCategory.init(
                 '',
                 undefined,
