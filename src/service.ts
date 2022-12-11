@@ -44,7 +44,7 @@ app.get('/product/:id', async (req, res) => {
     const ikomidaId = req.headers?.['x-ikomida-id']
     identity.ikomidaID = typeof ikomidaId === 'string' ? ikomidaId : ''
   }
-  const payload = await products.getProduct(identity, req?.params?.id)
+  const payload = await products.getProduct(identity, req?.params?.id, req.query as Types.Interfaces.IMetadata)
   res.sendResponse(payload)
 })
 
@@ -54,15 +54,15 @@ app.get('/productsCount', async (req, res) => {
 })
 
 app.get('/categories', async (req, res) => {
-  const payload = await products.getCategories(Types.Classes.CUser.fromObject(req.headers?.identity))
+  const payload = await products.getCategories(Types.Classes.CUser.fromObject(req.headers?.identity), req.query as Types.Interfaces.IMetadata)
   res.sendResponse(payload)
 })
 
 app.delete('/product/:id', async (req, res) => {
   const identity: Types.Classes.CUser = Types.Classes.CUser.fromObject(req.headers?.identity)
   const role = identity.role
-  if (role === Types.Types.TRoles.VENDOR) {
-    const payload = await products.deleteProduct(identity, req.params.id)
+  if (role && [Types.Types.TRoles.VENDOR, Types.Types.TRoles.ADMIN].includes(role)) {
+    const payload = await products.deleteProduct(identity, req.params.id, req.query as Types.Interfaces.IMetadata)
     res.status(payload?.success ? 201 : 200).sendResponse(payload)
   } else {
     res.status(403)
@@ -71,15 +71,15 @@ app.delete('/product/:id', async (req, res) => {
 
 app.patch('/product/:id', async (req, res) => {
   const identity: Types.Classes.CUser = Types.Classes.CUser.fromObject(req.headers?.identity)
-  const payload = await products.activateProduct(identity, req.params.id)
+  const payload = await products.activateProduct(identity, req.params.id, req.query as Types.Interfaces.IMetadata)
   res.status(payload?.success ? 201 : 200).sendResponse(payload)
 })
 
 app.delete('/category/:id', async (req, res) => {
   const identity: Types.Classes.CUser = Types.Classes.CUser.fromObject(req.headers?.identity)
   const role = identity.role
-  if (role === Types.Types.TRoles.VENDOR) {
-    const payload = await products.deleteCategory(identity, req.params.id)
+  if (role && [Types.Types.TRoles.VENDOR, Types.Types.TRoles.ADMIN].includes(role)) {
+    const payload = await products.deleteCategory(identity, req.params.id, req.query as Types.Interfaces.IMetadata)
     res.status(payload?.success ? 201 : 200).sendResponse(payload)
   } else {
     res.status(403)
@@ -89,8 +89,8 @@ app.delete('/category/:id', async (req, res) => {
 app.delete('/productoption/:id', async (req, res) => {
   const identity: Types.Classes.CUser = Types.Classes.CUser.fromObject(req.headers?.identity)
   const role = identity.role
-  if (role === Types.Types.TRoles.VENDOR) {
-    const payload = await products.deleteProductOption(identity, req.params.id)
+  if (role && [Types.Types.TRoles.VENDOR, Types.Types.TRoles.ADMIN].includes(role)) {
+    const payload = await products.deleteProductOption(identity, req.params.id, req.query as Types.Interfaces.IMetadata)
     res.status(payload?.success ? 201 : 200).sendResponse(payload)
   } else {
     res.status(403)
@@ -100,8 +100,8 @@ app.delete('/productoption/:id', async (req, res) => {
 app.delete('/productoptionscategory/:id', async (req, res) => {
   const identity: Types.Classes.CUser = Types.Classes.CUser.fromObject(req.headers?.identity)
   const role = identity.role
-  if (role === Types.Types.TRoles.VENDOR) {
-    const payload = await products.deleteCategoryOptions(identity, req.params.id)
+  if (role && [Types.Types.TRoles.VENDOR, Types.Types.TRoles.ADMIN].includes(role)) {
+    const payload = await products.deleteCategoryOptions(identity, req.params.id, req.query as Types.Interfaces.IMetadata)
     res.status(payload?.success ? 201 : 200).sendResponse(payload)
   } else {
     res.status(403)
@@ -111,8 +111,8 @@ app.delete('/productoptionscategory/:id', async (req, res) => {
 app.put('/product', async (req, res) => {
   const identity: Types.Classes.CUser = Types.Classes.CUser.fromObject(req.headers?.identity)
   const role = identity.role
-  if (role === Types.Types.TRoles.VENDOR) {
-    const payload = await products.editProduct(identity, req.body)
+  if (role && [Types.Types.TRoles.VENDOR, Types.Types.TRoles.ADMIN].includes(role)) {
+    const payload = await products.editProduct(identity, req.body, req.query as Types.Interfaces.IMetadata)
     res.status(payload?.success ? 201 : 200).sendResponse(payload)
   } else {
     res.status(403)
@@ -122,8 +122,8 @@ app.put('/product', async (req, res) => {
 app.put('/category', async (req, res) => {
   const identity: Types.Classes.CUser = Types.Classes.CUser.fromObject(req.headers?.identity)
   const role = identity.role
-  if (role === Types.Types.TRoles.VENDOR) {
-    const payload = await products.editCategory(identity, req.body)
+  if (role && [Types.Types.TRoles.VENDOR, Types.Types.TRoles.ADMIN].includes(role)) {
+    const payload = await products.editCategory(identity, req.body, req.query as Types.Interfaces.IMetadata)
     res.status(payload?.success ? 201 : 200).sendResponse(payload)
   } else {
     res.status(403)
@@ -134,8 +134,8 @@ app.post('/product', async (req, res) => {
   try {
     const identity: Types.Classes.CUser = Types.Classes.CUser.fromObject(req.headers?.identity)
     const role = identity.role
-    if (role && [Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF].includes(role)) {
-      const payload = await products.newProduct(identity, req.body)
+    if (role && [Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF, Types.Types.TRoles.ADMIN].includes(role)) {
+      const payload = await products.newProduct(identity, req.body, req.query as Types.Interfaces.IMetadata)
       res.status(payload?.success ? 201 : 200).sendResponse(payload)
     } else {
       res.status(403)
@@ -148,8 +148,8 @@ app.post('/product', async (req, res) => {
 app.post('/category', async (req, res) => {
   const identity: Types.Classes.CUser = Types.Classes.CUser.fromObject(req.headers?.identity)
   const role = identity.role
-  if (role && [Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF].includes(role)) {
-    const payload = await products.newCategory(identity, req.body)
+  if (role && [Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF, Types.Types.TRoles.ADMIN].includes(role)) {
+    const payload = await products.newCategory(identity, req.body, req.query as Types.Interfaces.IMetadata)
     res.status(payload?.success ? 201 : 200).sendResponse(payload)
   } else {
     res.status(403)
