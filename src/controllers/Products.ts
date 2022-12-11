@@ -337,7 +337,7 @@ export default class Products {
                 min: optionsCategory.min,
                 max: optionsCategory.max,
                 order: optionsCategory.order,
-                contract: contractModel
+                contractId: contractModel.id
               },
               { transaction }
             )
