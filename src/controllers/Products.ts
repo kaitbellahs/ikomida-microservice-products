@@ -42,7 +42,6 @@ export default class Products {
 
   async newProduct(identity: Types.Classes.CUser, input: any, query?: Types.Interfaces.IMetadata) {
     try {
-      console.log('query:', query)
       const payload: Types.Classes.CProduct = Types.Classes.CProduct.fromObject(input)
       if (!identity?.ikomidaID && !Logics.Validations.validateUUID(query?.contractId)) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
@@ -75,7 +74,6 @@ export default class Products {
         })
       }
       const contractModel = await DBModels.ContractModel.findOne({
-        logging: console.log,
         where:
           Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
             ? {
@@ -199,7 +197,6 @@ export default class Products {
   async editProduct(identity: Types.Classes.CUser, input: any, query?: Types.Interfaces.IMetadata) {
     const transaction = await Domain.SqlDB.sequelize.transaction({ autocommit: false })
     try {
-      console.log('query:', query)
       const payload: Types.Classes.CProduct | Types.Classes.CProduct[] = Types.Classes.CProduct.fromObject(input)
       if (!identity?.ikomidaID && !Logics.Validations.validateUUID(query?.contractId)) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
@@ -250,7 +247,6 @@ export default class Products {
             })
         }
         const contractModel = await DBModels.ContractModel.findOne({
-          logging: console.log,
           where:
             Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
               ? {
@@ -341,7 +337,7 @@ export default class Products {
                 min: optionsCategory.min,
                 max: optionsCategory.max,
                 order: optionsCategory.order,
-                contract: contractModel
+                contractId: contractModel.id
               },
               { transaction }
             )
@@ -437,7 +433,6 @@ export default class Products {
   async newCategory(identity: Types.Classes.CUser, input: any, query?: Types.Interfaces.IMetadata) {
     const transaction = await Domain.SqlDB.sequelize.transaction()
     try {
-      console.log('query:', query)
       const payload: Types.Classes.CProductCategory = Types.Classes.CProductCategory.fromObject(input)
       if (!identity?.ikomidaID && !Logics.Validations.validateUUID(query?.contractId)) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
@@ -464,7 +459,6 @@ export default class Products {
       }
 
       const contractModel = await DBModels.ContractModel.findOne({
-        logging: console.log,
         where:
           Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
             ? {
@@ -503,7 +497,6 @@ export default class Products {
     try {
       const payload: Types.Classes.CCategoryProducts | Types.Classes.CCategoryProducts[] =
         Types.Classes.CCategoryProducts.fromObject(input)
-      console.log('payload:', payload)
       if (!identity?.ikomidaID && !Logics.Validations.validateUUID(query?.contractId)) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
       }
@@ -539,9 +532,7 @@ export default class Products {
             }
           )
         }
-        console.log('include:', include)
         const contractModel = await DBModels.ContractModel.findOne({
-          logging: console.log,
           where:
             Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
               ? {
@@ -587,7 +578,6 @@ export default class Products {
 
   async getProduct(identity?: Types.Classes.CUser, id?: string, query?: Types.Interfaces.IMetadata) {
     try {
-      console.log('query:', query)
       if (!identity?.ikomidaID && !Logics.Validations.validateUUID(query?.contractId)) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
       }
@@ -638,7 +628,6 @@ export default class Products {
         })
       }
       const contractModel = await DBModels.ContractModel.findOne({
-        logging: console.log,
         where:
           identity?.role && Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
             ? {
@@ -1055,7 +1044,6 @@ export default class Products {
 
   async getCategories(identity: Types.Classes.CUser, query?: Types.Interfaces.IMetadata) {
     try {
-      console.log('query:', query)
       if (!identity?.ikomidaID && !Logics.Validations.validateUUID(query?.contractId)) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
       }
@@ -1081,7 +1069,6 @@ export default class Products {
           })
       }
       const contractModel = await DBModels.ContractModel.findOne({
-        logging: console.log,
         where:
           Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
             ? {
@@ -1121,7 +1108,6 @@ export default class Products {
   async deleteProduct(identity: Types.Classes.CUser, id?: string, query?: Types.Interfaces.IMetadata) {
     const transaction = await Domain.SqlDB.sequelize.transaction()
     try {
-      console.log('query:', query)
       if (!identity?.ikomidaID && !Logics.Validations.validateUUID(query?.contractId)) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
       }
@@ -1156,7 +1142,6 @@ export default class Products {
           })
       }
       const contractModel = await DBModels.ContractModel.findOne({
-        logging: console.log,
         where:
           Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
             ? {
@@ -1205,7 +1190,6 @@ export default class Products {
   async deleteCategory(identity: Types.Classes.CUser, id?: string, query?: Types.Interfaces.IMetadata) {
     const transaction = await Domain.SqlDB.sequelize.transaction()
     try {
-      console.log('query:', query)
       if (!identity?.ikomidaID && !Logics.Validations.validateUUID(query?.contractId)) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
       }
@@ -1311,7 +1295,6 @@ export default class Products {
   async deleteProductOption(identity: Types.Classes.CUser, id?: string, query?: Types.Interfaces.IMetadata) {
     const transaction = await Domain.SqlDB.sequelize.transaction()
     try {
-      console.log('query:', query, 'id:', id)
       if (!identity?.ikomidaID && !Logics.Validations.validateUUID(query?.contractId)) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
       }
@@ -1346,7 +1329,6 @@ export default class Products {
           })
       }
       const contractModel = await DBModels.ContractModel.findOne({
-        logging: console.log,
         where:
           Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
             ? {
@@ -1381,7 +1363,6 @@ export default class Products {
   async deleteCategoryOptions(identity: Types.Classes.CUser, id?: string, query?: Types.Interfaces.IMetadata) {
     const transaction = await Domain.SqlDB.sequelize.transaction()
     try {
-      console.log('query:', query)
       if (!identity?.ikomidaID && !Logics.Validations.validateUUID(query?.contractId)) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
       }
@@ -1416,7 +1397,6 @@ export default class Products {
           })
       }
       const contractModel = await DBModels.ContractModel.findOne({
-        logging: console.log,
         where:
           Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
             ? {
@@ -1430,7 +1410,6 @@ export default class Products {
       if (!contractModel) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORIES_INVALID_CONTRACT)
       }
-      console.log('contractModel:', JSON.stringify(contractModel.toJSON()))
       const productOptionsCategoryModels = contractModel?.productOptionsCategories
       if (productOptionsCategoryModels?.length !== 1) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORIES_NOT_FOUND)
@@ -1458,7 +1437,6 @@ export default class Products {
 
   async activateProduct(identity: Types.Classes.CUser, id?: string, query?: Types.Interfaces.IMetadata) {
     try {
-      console.log('query:', query)
       if (!identity?.ikomidaID && !Logics.Validations.validateUUID(query?.contractId)) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
       }
