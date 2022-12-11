@@ -1311,7 +1311,7 @@ export default class Products {
   async deleteProductOption(identity: Types.Classes.CUser, id?: string, query?: Types.Interfaces.IMetadata) {
     const transaction = await Domain.SqlDB.sequelize.transaction()
     try {
-      console.log('query:', query)
+      console.log('query:', query, 'id:', id)
       if (!identity?.ikomidaID && !Logics.Validations.validateUUID(query?.contractId)) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
       }
@@ -1430,6 +1430,7 @@ export default class Products {
       if (!contractModel) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORIES_INVALID_CONTRACT)
       }
+      console.log('contractModel:', JSON.stringify(contractModel.toJSON()))
       const productOptionsCategoryModels = contractModel?.productOptionsCategories
       if (productOptionsCategoryModels?.length !== 1) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_DELETE_CATEGORIES_NOT_FOUND)
