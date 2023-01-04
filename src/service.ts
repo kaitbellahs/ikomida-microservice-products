@@ -1,7 +1,7 @@
 import express from 'express'
 import bodyParser from 'body-parser'
 import Products from './controllers/Products.js'
-import { BackendTypes, Types, Utils } from '@ikomida/shared-backend'
+import { Types, Utils } from '@ikomida/shared-backend'
 
 import { createRequire } from 'module'
 const require = createRequire(import.meta.url)
@@ -54,7 +54,10 @@ app.get('/productsCount', async (req, res) => {
 })
 
 app.get('/categories', async (req, res) => {
-  const payload = await products.getCategories(Types.Classes.CUser.fromObject(req.headers?.identity), req.query as Types.Interfaces.IMetadata)
+  const payload = await products.getCategories(
+    Types.Classes.CUser.fromObject(req.headers?.identity),
+    req.query as Types.Interfaces.IMetadata
+  )
   res.sendResponse(payload)
 })
 
@@ -101,7 +104,11 @@ app.delete('/productoptionscategory/:id', async (req, res) => {
   const identity: Types.Classes.CUser = Types.Classes.CUser.fromObject(req.headers?.identity)
   const role = identity.role
   if (role && [Types.Types.TRoles.VENDOR, Types.Types.TRoles.ADMIN].includes(role)) {
-    const payload = await products.deleteCategoryOptions(identity, req.params.id, req.query as Types.Interfaces.IMetadata)
+    const payload = await products.deleteCategoryOptions(
+      identity,
+      req.params.id,
+      req.query as Types.Interfaces.IMetadata
+    )
     res.status(payload?.success ? 201 : 200).sendResponse(payload)
   } else {
     res.status(403)
