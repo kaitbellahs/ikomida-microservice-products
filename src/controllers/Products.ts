@@ -1,5 +1,6 @@
 import { Domain, Utils, Types, Logics, DBModels } from '@ikomida/shared-backend'
 import { IiKomidaErrorModel } from '@ikomida/shared-backend/lib/src/Utils/iKomidaError.js'
+import { Classes } from '@ikomida/shared-types'
 import { v4 as uuidv4 } from 'uuid'
 
 export default class Products {
@@ -47,7 +48,11 @@ export default class Products {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_INVALID_CONTRACT)
       }
       const role = identity.role
-      if (!role || ![...Types.Types.TRoles.internals, Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF].includes(role) || !payload.category?.id) {
+      if (
+        !role ||
+        ![...Types.Types.TRoles.internals, Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF].includes(role) ||
+        !payload.category?.id
+      ) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_UNAUTHORIZED)
       }
       const include: Domain.SqlDB.Includeable[] = [
@@ -77,11 +82,11 @@ export default class Products {
         where:
           Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
             ? {
-              id: query?.contractId
-            }
+                id: query?.contractId
+              }
             : {
-              ikomidaID: identity?.ikomidaID
-            },
+                ikomidaID: identity?.ikomidaID
+              },
         include
       })
       if (!contractModel) {
@@ -184,7 +189,7 @@ export default class Products {
           ]
         }
       )
-      return new Utils.Return(productModel !== null)
+      return new Classes.Return(productModel !== null)
     } catch (exception: any) {
       let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
       if (exception instanceof Utils.iKomidaError) {
@@ -234,27 +239,26 @@ export default class Products {
           })
         }
         if (!Types.Types.TRoles.isInternal(identity.role)) {
-          include.push(
-            {
-              model: DBModels.UserModel,
-              required: true,
-              where: {
-                id: identity.id,
-                role: {
-                  [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR]
-                }
+          include.push({
+            model: DBModels.UserModel,
+            required: true,
+            where: {
+              id: identity.id,
+              role: {
+                [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR]
               }
-            })
+            }
+          })
         }
         const contractModel = await DBModels.ContractModel.findOne({
           where:
             Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
               ? {
-                id: query?.contractId
-              }
+                  id: query?.contractId
+                }
               : {
-                ikomidaID: identity?.ikomidaID
-              },
+                  ikomidaID: identity?.ikomidaID
+                },
           include
         })
         if (!contractModel) {
@@ -419,7 +423,7 @@ export default class Products {
         await productModel.save({ transaction })
       }
       await transaction.commit()
-      return new Utils.Return(true)
+      return new Classes.Return(true)
     } catch (exception: any) {
       await transaction.rollback()
       let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
@@ -441,32 +445,29 @@ export default class Products {
       if (!role || ![Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF, Types.Types.TRoles.ADMIN].includes(role)) {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_CATEGORY_UNAUTHORIZED)
       }
-      const include: Domain.SqlDB.Includeable[] = [
-      ]
+      const include: Domain.SqlDB.Includeable[] = []
       if (!Types.Types.TRoles.isInternal(identity.role)) {
-        include.push(
-          {
-            model: DBModels.UserModel,
-            required: true,
-            where: {
-              id: identity.id,
-              role: {
-                [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF]
-              }
+        include.push({
+          model: DBModels.UserModel,
+          required: true,
+          where: {
+            id: identity.id,
+            role: {
+              [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF]
             }
           }
-        )
+        })
       }
 
       const contractModel = await DBModels.ContractModel.findOne({
         where:
           Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
             ? {
-              id: query?.contractId
-            }
+                id: query?.contractId
+              }
             : {
-              ikomidaID: identity?.ikomidaID
-            },
+                ikomidaID: identity?.ikomidaID
+              },
         include
       })
       if (!contractModel) {
@@ -476,12 +477,11 @@ export default class Products {
       await contractModel.$create('productCategory', {
         title: payload.title,
         description: payload.description,
-        businessHours: payload.business?.hours,
-        businessDays: payload.business?.days,
+        businessHours: payload.business,
         order: countCategories
       })
       await transaction.commit()
-      return new Utils.Return(true)
+      return new Classes.Return(true)
     } catch (exception: any) {
       await transaction.rollback()
       let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
@@ -519,28 +519,26 @@ export default class Products {
           }
         ]
         if (!Types.Types.TRoles.isInternal(identity.role)) {
-          include.push(
-            {
-              model: DBModels.UserModel,
-              required: true,
-              where: {
-                id: identity.id,
-                role: {
-                  [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR]
-                }
+          include.push({
+            model: DBModels.UserModel,
+            required: true,
+            where: {
+              id: identity.id,
+              role: {
+                [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR]
               }
             }
-          )
+          })
         }
         const contractModel = await DBModels.ContractModel.findOne({
           where:
             Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
               ? {
-                id: query?.contractId
-              }
+                  id: query?.contractId
+                }
               : {
-                ikomidaID: identity?.ikomidaID
-              },
+                  ikomidaID: identity?.ikomidaID
+                },
           include
         })
         if (!contractModel) {
@@ -556,8 +554,7 @@ export default class Products {
             title: category.title ?? productCategoryModel.title,
             description: category.description,
             order: category.order ?? productCategoryModel.order,
-            businessHours: category.business?.hours,
-            businessDays: category.business?.days
+            businessHours: category.business
           },
           {
             transaction
@@ -565,7 +562,7 @@ export default class Products {
         )
       }
       await transaction.commit()
-      return new Utils.Return(true)
+      return new Classes.Return(true)
     } catch (exception: any) {
       await transaction.rollback()
       let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
@@ -629,13 +626,15 @@ export default class Products {
       }
       const contractModel = await DBModels.ContractModel.findOne({
         where:
-          identity?.role && Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
+          identity?.role &&
+          Types.Types.TRoles.isInternal(identity.role) &&
+          Logics.Validations.validateUUID(query?.contractId)
             ? {
-              id: query?.contractId
-            }
+                id: query?.contractId
+              }
             : {
-              ikomidaID: identity?.ikomidaID
-            },
+                ikomidaID: identity?.ikomidaID
+              },
         include
       })
       if (!contractModel) {
@@ -702,7 +701,7 @@ export default class Products {
         productModel.maxQuantityPerOrder,
         productModel?.id
       )
-      return new Utils.Return(true, product)
+      return new Classes.Return(true, product)
     } catch (exception: any) {
       let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
       if (exception instanceof Utils.iKomidaError) {
@@ -761,7 +760,11 @@ export default class Products {
           ]
         }
       ]
-      if (identity?.id && !Utils.System.isDemo(identity.ikomidaID, identity.areaCode, identity.phone) && !Types.Types.TRoles.isInternal(identity.role)) {
+      if (
+        identity?.id &&
+        !Utils.System.isDemo(identity.ikomidaID, identity.areaCode, identity.phone) &&
+        !Types.Types.TRoles.isInternal(identity.role)
+      ) {
         include.push({
           model: DBModels.UserModel,
           required: true,
@@ -780,13 +783,15 @@ export default class Products {
       }
       const contractModel = await DBModels.ContractModel.findOne({
         where:
-          identity?.role && Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
+          identity?.role &&
+          Types.Types.TRoles.isInternal(identity.role) &&
+          Logics.Validations.validateUUID(query?.contractId)
             ? {
-              id: query?.contractId
-            }
+                id: query?.contractId
+              }
             : {
-              ikomidaID: identity?.ikomidaID
-            },
+                ikomidaID: identity?.ikomidaID
+              },
         include
       })
       if (!contractModel) {
@@ -886,18 +891,13 @@ export default class Products {
             productsAndCategoryModel.description,
             productsAndCategoryModel.createdAt,
             products,
-            Types.Classes.CBusinessTime.fromObject({
-              hours: productsAndCategoryModel.businessHours,
-              days: productsAndCategoryModel.businessDays
-            })
+            Types.Classes.CBusinessTime.fromObject(productsAndCategoryModel.businessHours),
+            productsAndCategoryModel?.id
           )
-          if (role && (Types.Types.TRoles.isVendor(role) || Types.Types.TRoles.isInternal(role))) {
-            productsAndCategory.id = productsAndCategoryModel?.id
-          }
           return productsAndCategory
         }) || []
       )
-      return new Utils.Return(true, productsAndCategories)
+      return new Classes.Return(true, productsAndCategories)
     } catch (exception: any) {
       let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
       if (exception instanceof Utils.iKomidaError) {
@@ -993,7 +993,7 @@ export default class Products {
             return product
           }) || []
         )) || []
-      return new Utils.Return(true, products)
+      return new Classes.Return(true, products)
     } catch (exception: any) {
       let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
       if (exception instanceof Utils.iKomidaError) {
@@ -1007,7 +1007,7 @@ export default class Products {
     try {
       const role = identity.role
       if (!role || ![Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF].includes(role)) {
-        return new Utils.Return(true, 0)
+        return new Classes.Return(true, 0)
       }
       const contractModel = await DBModels.ContractModel.findOne({
         where: {
@@ -1032,7 +1032,7 @@ export default class Products {
         throw new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_GET_PRODUCTS_COUNT_INVALID_CONTRACT)
       }
       const productModels = contractModel?.products
-      return new Utils.Return(true, productModels?.length)
+      return new Classes.Return(true, productModels?.length)
     } catch (exception: any) {
       let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
       if (exception instanceof Utils.iKomidaError) {
@@ -1056,27 +1056,26 @@ export default class Products {
         }
       ]
       if (identity?.role && !Types.Types.TRoles.isInternal(identity.role)) {
-        include.push(
-          {
-            model: DBModels.UserModel,
-            required: true,
-            where: {
-              id: identity.id,
-              role: {
-                [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF, Types.Types.TRoles.ADMIN]
-              }
+        include.push({
+          model: DBModels.UserModel,
+          required: true,
+          where: {
+            id: identity.id,
+            role: {
+              [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF, Types.Types.TRoles.ADMIN]
             }
-          })
+          }
+        })
       }
       const contractModel = await DBModels.ContractModel.findOne({
         where:
           Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
             ? {
-              id: query?.contractId
-            }
+                id: query?.contractId
+              }
             : {
-              ikomidaID: identity?.ikomidaID
-            },
+                ikomidaID: identity?.ikomidaID
+              },
         include
       })
       if (!contractModel) {
@@ -1088,14 +1087,11 @@ export default class Products {
           categoryModel?.title ?? '-',
           undefined,
           categoryModel?.description,
-          Types.Classes.CBusinessTime.fromObject({
-            hours: categoryModel.businessHours,
-            days: categoryModel.businessDays
-          }),
+          Types.Classes.CBusinessTime.fromObject(categoryModel.businessHours),
           categoryModel?.id
         )
       })
-      return new Utils.Return(true, categories)
+      return new Classes.Return(true, categories)
     } catch (exception: any) {
       let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
       if (exception instanceof Utils.iKomidaError) {
@@ -1116,7 +1112,7 @@ export default class Products {
       }
       const role = identity.role
       if (!role || ![Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF, Types.Types.TRoles.ADMIN].includes(role)) {
-        return new Utils.Return(false)
+        return new Classes.Return(false)
       }
       const include: Domain.SqlDB.Includeable[] = [
         { model: DBModels.PlanModel, required: true },
@@ -1129,27 +1125,26 @@ export default class Products {
         }
       ]
       if (identity?.role && !Types.Types.TRoles.isInternal(identity.role)) {
-        include.push(
-          {
-            model: DBModels.UserModel,
-            required: true,
-            where: {
-              id: identity.id,
-              role: {
-                [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.ADMIN]
-              }
+        include.push({
+          model: DBModels.UserModel,
+          required: true,
+          where: {
+            id: identity.id,
+            role: {
+              [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.ADMIN]
             }
-          })
+          }
+        })
       }
       const contractModel = await DBModels.ContractModel.findOne({
         where:
           Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
             ? {
-              id: query?.contractId
-            }
+                id: query?.contractId
+              }
             : {
-              ikomidaID: identity?.ikomidaID
-            },
+                ikomidaID: identity?.ikomidaID
+              },
         include
       })
       if (!contractModel) {
@@ -1176,7 +1171,7 @@ export default class Products {
       })
       await productModel.destroy({ transaction })
       await transaction.commit()
-      return new Utils.Return(true)
+      return new Classes.Return(true)
     } catch (exception: any) {
       await transaction.rollback()
       let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
@@ -1198,7 +1193,7 @@ export default class Products {
       }
       const role = identity.role
       if (!role || ![Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF, Types.Types.TRoles.ADMIN].includes(role)) {
-        return new Utils.Return(false)
+        return new Classes.Return(false)
       }
       const include: Domain.SqlDB.Includeable[] = [
         { model: DBModels.PlanModel, required: true },
@@ -1217,27 +1212,26 @@ export default class Products {
         }
       ]
       if (identity?.role && !Types.Types.TRoles.isInternal(identity.role)) {
-        include.push(
-          {
-            model: DBModels.UserModel,
-            required: true,
-            where: {
-              id: identity.id,
-              role: {
-                [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.ADMIN]
-              }
+        include.push({
+          model: DBModels.UserModel,
+          required: true,
+          where: {
+            id: identity.id,
+            role: {
+              [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.ADMIN]
             }
-          })
+          }
+        })
       }
       const contractModel = await DBModels.ContractModel.findOne({
         where:
           Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
             ? {
-              id: query?.contractId
-            }
+                id: query?.contractId
+              }
             : {
-              ikomidaID: identity?.ikomidaID
-            },
+                ikomidaID: identity?.ikomidaID
+              },
         include
       })
       if (!contractModel) {
@@ -1281,7 +1275,7 @@ export default class Products {
       })
       await categoryModel.destroy({ transaction })
       await transaction.commit()
-      return new Utils.Return(true)
+      return new Classes.Return(true)
     } catch (exception: any) {
       await transaction.rollback()
       let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
@@ -1303,7 +1297,7 @@ export default class Products {
       }
       const role = identity.role
       if (!role || ![Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF, Types.Types.TRoles.ADMIN].includes(role)) {
-        return new Utils.Return(false)
+        return new Classes.Return(false)
       }
       const include: Domain.SqlDB.Includeable[] = [
         { model: DBModels.PlanModel, required: true },
@@ -1316,27 +1310,26 @@ export default class Products {
         }
       ]
       if (identity?.role && !Types.Types.TRoles.isInternal(identity.role)) {
-        include.push(
-          {
-            model: DBModels.UserModel,
-            required: true,
-            where: {
-              id: identity.id,
-              role: {
-                [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.ADMIN]
-              }
+        include.push({
+          model: DBModels.UserModel,
+          required: true,
+          where: {
+            id: identity.id,
+            role: {
+              [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.ADMIN]
             }
-          })
+          }
+        })
       }
       const contractModel = await DBModels.ContractModel.findOne({
         where:
           Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
             ? {
-              id: query?.contractId
-            }
+                id: query?.contractId
+              }
             : {
-              ikomidaID: identity?.ikomidaID
-            },
+                ikomidaID: identity?.ikomidaID
+              },
         include
       })
       if (!contractModel) {
@@ -1349,7 +1342,7 @@ export default class Products {
       const productOptionModel = productOptionModels[0]
       await productOptionModel.destroy({ transaction })
       await transaction.commit()
-      return new Utils.Return(true)
+      return new Classes.Return(true)
     } catch (exception: any) {
       await transaction.rollback()
       let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
@@ -1371,7 +1364,7 @@ export default class Products {
       }
       const role = identity.role
       if (!role || ![Types.Types.TRoles.VENDOR, Types.Types.TRoles.STAFF, Types.Types.TRoles.ADMIN].includes(role)) {
-        return new Utils.Return(false)
+        return new Classes.Return(false)
       }
       const include: Domain.SqlDB.Includeable[] = [
         { model: DBModels.PlanModel, required: true },
@@ -1384,27 +1377,26 @@ export default class Products {
         }
       ]
       if (identity?.role && !Types.Types.TRoles.isInternal(identity.role)) {
-        include.push(
-          {
-            model: DBModels.UserModel,
-            required: true,
-            where: {
-              id: identity.id,
-              role: {
-                [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.ADMIN]
-              }
+        include.push({
+          model: DBModels.UserModel,
+          required: true,
+          where: {
+            id: identity.id,
+            role: {
+              [Domain.SqlDB.Op.in]: [Types.Types.TRoles.VENDOR, Types.Types.TRoles.ADMIN]
             }
-          })
+          }
+        })
       }
       const contractModel = await DBModels.ContractModel.findOne({
         where:
           Types.Types.TRoles.isInternal(identity.role) && Logics.Validations.validateUUID(query?.contractId)
             ? {
-              id: query?.contractId
-            }
+                id: query?.contractId
+              }
             : {
-              ikomidaID: identity?.ikomidaID
-            },
+                ikomidaID: identity?.ikomidaID
+              },
         include
       })
       if (!contractModel) {
@@ -1424,7 +1416,7 @@ export default class Products {
       })
       await productOptionsCategoryModel.destroy({ transaction })
       await transaction.commit()
-      return new Utils.Return(true)
+      return new Classes.Return(true)
     } catch (exception: any) {
       await transaction.rollback()
       let error = new Utils.iKomidaError(Utils.iKomidaError.IKOMIDA_PRODUCTS_SERVICE_NEW_PRODUCT_EXCEPTION, exception)
@@ -1451,9 +1443,9 @@ export default class Products {
       if (roductModel) {
         roductModel.active = !roductModel?.active
         roductModel?.save()
-        return new Utils.Return(true)
+        return new Classes.Return(true)
       }
-      return new Utils.Return(false)
+      return new Classes.Return(false)
     } catch (exception: any) {
       const error = new Utils.iKomidaError(
         Utils.iKomidaError.IKOMIDA_ADMIN_SERVICE_ACTIVE_SETTING_EXCEPTION,
